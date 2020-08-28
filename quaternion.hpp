@@ -1,6 +1,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/matx.hpp>
 #include <iostream>
+#include <opencv2/core/mat.hpp>
 //namespace cv 
 //{
 	class Quaternion
@@ -8,7 +9,8 @@
 	public:
 		Quaternion() = default;
 		Quaternion(cv::Vec4d coeff);
-		Quaternion(double v1, double v2, double v3, double v4);	
+		Quaternion(double qw, double qx, double qy, double qz);	
+		Quaternion(cv::Mat &R);
 
 		Quaternion conjugate() const;
 		double norm() const;

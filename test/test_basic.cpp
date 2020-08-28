@@ -2,16 +2,17 @@
 #define QUATERNION_H
 #include "quaternion.hpp"
 #endif
-
+//#include <opencv2/opencv.hpp>
 //using namespace cv;
 
 void test_operator()
 {
 	
 	Quaternion q1(cv::Vec4d{1,2,3,4});
-	Quaternion q2(5,6,7,8);
+	cv::Mat R = (cv::Mat_<uchar>(3,3) << -9, 10, 0, 6, -9, 8, 8, 0, -15);
+	Quaternion q2(R);
 	double scalar = 3.1;
-
+	std::cout << R.at<double>(0,2) << std::endl;
 	std::cout << "q2:" << q2  << std::endl;
 	std::cout << "q1:" << q1  << std::endl;
 	std::cout << "scalar:" << scalar << std::endl;
