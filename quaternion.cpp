@@ -4,7 +4,7 @@
 #endif
 
 #include <assert.h>
-// #include <iostream>
+//#nclude <iostream>
 #include <math.h>
 #include "test/test_basic.cpp"
 //using namespace cv;
@@ -192,9 +192,14 @@ inline Quaternion<T> Quaternion<T>::inv() const
 }
 
 template <typename T>
-cv::Mat Quaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis) const
+cv::Mat Quaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis)
 {
-	T a = cos(angle), b = axis[1], c = axis[2], d = axis[3];
+	assert(Quaternion<T>::isNormalized(axis) == true);
+	// if (Quaternion<T>::isNormalized(axis) == false)
+	// {
+	//     raise("balabala")
+	// }
+	T a = cos(angle / 2), b = sin(angle / 2) * axis[1], c = sin(angle / 2) * axis[2], d = sin(angle / 2) * axis[3];
 	cv::Matx<T, 4, 4> R{
 		 1, 0,                       0,                       0,
 		 0, 1 - 2 * (c * c + d * d), 2 * (b * c - a * d),      2 * (a * c + b * d),
@@ -204,18 +209,56 @@ cv::Mat Quaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis) cons
 }
 
 template <typename T>
-void Quaternion<T>::transform(const T &angle, const cv::Vec<T, 3> &axis, T &coeff=coeff)
+void Quaternion<T>::transform(const T &angle, const cv::Vec<T, 3> &axis)
 {
 	coeff.t();
 	cv::Mat rotMat = getRotMat(angle, axis) * coeff;
 	cv::Vec<T, 4> abc(rotMat);
-	this.coeff = abc;
+	coeff = abc;
 	std::cout << coeff << std::endl;
 }
 
+template <typename T>
+inline Quaternion<T> Quaternion<T>::getRotQuat(const T& angle, const cv::Vec<T, 3> &axis)
+{
+	assert(Quaternion<T>::isNormalized(axis) == true);
+	// if (Quaternion<T>::isNormalized(axis) == false)
+	// {
+	//     raise("balabala")
+	// }
+	return Quaternion(sin(angle / 2), cos(angle / 2) * axis[0], cos(angle / 2) * axis[1], cos((angle / 2) * axis[2]));
+}
+
+template <typename T>
+template <typename _Tp>
+bool Quaternion<T>::isNormalized(_Tp obj)
+{
+	double eps = 0.0000001;
+	double normVar = sqrt(obj.dot(obj));
+	std::cout << "obj = " << obj << "normVar = " << normVar << std::endl;
+	if ((normVar > 1 - eps) && (normVar < 1 + eps))
+		return true;
+	return false;
+}
 
 
 int main(){
 	test_operator();
+	std::cout << "=================================" << std::endl;
+	Quaternion<float> q1{2,1,3,4};
+	q1 = q1.normalize();
+	std::cout << q1.norm() << std::endl;
+	
+	bool ans = Quaternion<double>::isNormalized(cv::Vec<double, 4>{1,2,3,4});
+	assert(ans == false);
+	ans = Quaternion<double>::isNormalized(Quaternion<double>{1.1,2,3,4});
+	assert(ans == false);
+	ans = Quaternion<double>::isNormalized(Quaternion<double>{1,2,3,4} / sqrt(30));
+	assert(ans == true);
+	ans = Quaternion<double>::isNormalized(cv::Vec<double, 4>{1,2,3,4} / sqrt(30));
+	assert(ans == true);
+	
+	Quaternion<double>::getRotQuat(3.1415926/2, cv::Vec<double, 3>{1 ,2 ,3} / sqrt(14));
+	std::cout << ans << std::endl;
 	return 0;
 }

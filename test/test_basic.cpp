@@ -67,11 +67,12 @@ void test_operator()
 
 	std::cout <<"q1 * q1.inv() = " <<  q1 * q1.inv() << std::endl;
 	
-	std::cout << "q1.getRotMat(30,[1,2,3]) = " << q1.getRotMat(30, cv::Vec<double, 3>{1,2,3}) << std::endl;
+	std::cout << "q1.getRotMat(30,[1,2,3]) = " << Quaternion<double>::getRotMat(30, cv::Vec<double, 3>{1,2,3} / sqrt(14))<< std::endl;
 	
-	q1.transform(30, cv::Vec<double, 3>{1,2,3});
+	q1.transform(30, cv::Vec<double, 3>{1,2,3} / sqrt(14));
 	std::cout << "after transformation" << q1 << std::endl;
-
-
+	
+	Quaternion<double> q4{0.4,1,2,3};
+	std::cout << q4 * q1 * q4.conjugate()<< std::endl;
 
 }
