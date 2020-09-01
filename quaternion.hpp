@@ -14,10 +14,14 @@
 		explicit Quaternion(cv::Mat &R);
 
 		Quaternion<T> conjugate() const;
+		Quaternion<T> t() const;
 		T norm() const;
 		T dot(Quaternion<T>&) const;
 		Quaternion<T> normalize() const;
 		Quaternion<T> inv() const;
+		cv::Mat toRotMat();
+		T getAngle() const;
+		cv::Vec<T, 3> getAxis() const;
 		static cv::Mat getRotMat(const T&, const cv::Vec<T, 3>&);
 		/** @brief get the rotation queternion
 		@param angle Rotation angle
@@ -32,13 +36,23 @@
 		
 		
 		/** @brief transform the position by quaternion
-		@param _T to be transformed Vec or Mat
+		@param beTransed to be transformed Vec or Mat
 		@param T angle rotation angle
 		@param axis normalized axis
 		*/
-		template <typename _T>
-		static cv::Mat transform(const _T&, const T&angle, const cv::Mat&);
+		//template <typename _T>
+	    // _T static transform(_T &beTransed, const T &angle, const cv::Vec<T, 3> &axis);
+	    static void transform(cv::Mat &beTransed, const T &angle, const cv::Vec<T, 3> &axis);
+
+		/** To calculate the transformation between q_0 and q_1 by Spherical Linear Interpolation(Slerp)
+		@param q1 a unit Quaternion
+		@param q2 a unit Quaternion
+		@param t a number in [0, 1]
+		*/
+		static Quaternion<T> slerp(Quaternion<T> &q1, Quaternion &q2, T t);
+		static Quaternion<T> nlerp(Quaternion<T> &q1, Quaternion &q2, T t);
 		
+		Quaternion<T> operator-() const;
 		bool operator==(const Quaternion<T>&) const;
 		Quaternion<T> operator+(const Quaternion<T>&) const; 
 		Quaternion<T>& operator+=(const Quaternion<T>&); 
