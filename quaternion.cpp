@@ -207,7 +207,7 @@ cv::Mat UnitQuaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis)
 template <typename T>
 cv::Mat UnitQuaternion<T>::toRotMat44()
 {
-	assert(Quaternion<T>::isNormalized(coeff) == true);
+	assert(isNormalized(coeff) == true);
 	T a = coeff[0], b = coeff[1], c = coeff[2], d = coeff[3];
 	cv::Matx<T, 4, 4> R{
 		 1, 0,                       0,                       0,
@@ -282,6 +282,13 @@ inline Quaternion<T> Quaternion<T>::nlerp(const Quaternion<T> &q1, const Quatern
 	return ((1 - t) * q1 + t * q2).normalize();
 }
 
+
+template <typename T>
+inline Quaternion<T> Quaternion<T>::squad(const Quaternion<T> &q1, const Quaternion<T> &q2,
+										  const Quaternion<T> &q3, const Quaternion<T> &q4, T t)
+{
+	return slerp(slerp(q1, q4, t), slerp(q2, q3, t), 2* t * (1 - t));
+}
 
 template <typename T>
 inline Quaternion<T> Quaternion<T>::getRotQuat(const T& angle, const cv::Vec<T, 3> &axis)
@@ -381,6 +388,7 @@ UnitQuaternion<T>::UnitQuaternion(const T &angle, cv::Vec<T, 3> &axis)
 template <typename T>
 UnitQuaternion<T>::UnitQuaternion(T qw, T qx, T qy, T qz):coeff(qw, qx, qy, qz){}
 
+>>>>>>> f3b406c4eb5579992de33388eecfbe092f9f5901
 
 template <typename T>
 cv::Vec<T, 4> UnitQuaternion<T>::getCoeff()
@@ -457,7 +465,7 @@ template <typename T>
 inline Quaternion<T> UnitQuaternion<T>::operator*(Quaternion<T> &q1) const
 {
 	return Quaternion<T>(coeff * q1.getCoeff());
-}
+
 
 template <typename T>
 UnitQuaternion<T> operator*(const UnitQuaternion<T> &q1, const T a)

@@ -9,6 +9,7 @@ void test_unit_basic()
 	UnitQuaternion<double> q2(coeff);
 	Quaternion<double> quat(1,2,3,4);
 	Quaternion<double> quat_q2(coeff);
+	Quaternion<double> quat(coeff);
 	UnitQuaternion<double> q3(quat);
 	UnitQuaternion<double> q4(angle, axis);
 	UnitQuaternion<double> q5(q2);     //？？？？？？？？
@@ -26,6 +27,7 @@ void test_unit_basic()
 	assert((quat * quat_q2).getCoeff() == (quat * q2).getCoeff());
 	cout << "UnitQuaternion * Quaternion\n" << q2 * quat_q2 << endl;
 	assert((q2 * q2).getCoeff() == (q2 * quat_q2).getCoeff());
+	
 	
 	double scalar = 4;
 	cout << scalar * q7 << endl;

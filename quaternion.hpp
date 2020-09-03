@@ -60,9 +60,11 @@
 		*/
 		static Quaternion<T> lerp(const Quaternion<T> &q1, const Quaternion &q2, T t);
 		
+		
 		static Quaternion<T> slerp(Quaternion<T> &q1, Quaternion &q2, T t);
 		static Quaternion<T> nlerp(const Quaternion<T> &q1, const Quaternion &q2, T t);
-		
+		static Quaternion<T> squad(const Quaternion<T> &q1, const Quaternion &q2,
+								   const Quaternion<T> &q3, const Quaternion &q4, T t);
 		Quaternion<T> operator-() const;
 		bool operator==(const Quaternion<T>&) const;
 		Quaternion<T> operator+(const Quaternion<T>&) const; 
@@ -140,4 +142,6 @@
 	private:
 		cv::Vec<T, 4> coeff{1.0, 0.0, 0.0, 0.0};
 	};
+
+
 //}
