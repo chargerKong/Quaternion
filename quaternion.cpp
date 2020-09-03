@@ -6,7 +6,7 @@
 #include <assert.h>
 //#nclude <iostream>
 #include <math.h>
-//#include "test/test_basic.cpp"
+#include "test/test_basic.cpp"
 #include "test/test_unit_basic.cpp"
 //using namespace cv;
 
@@ -59,7 +59,7 @@ inline Quaternion<T>& Quaternion<T>::operator-=(const Quaternion<T> &q1)
 template <typename T>
 inline Quaternion<T> Quaternion<T>::operator*(UnitQuaternion<T> &q1) const
 {
-	return Quaternion<T>(coeff * q1.getCoeff());
+	return Quaternion<T>(coeff * q1.coeff);
 }
 
 template <typename T>
@@ -77,7 +77,6 @@ Quaternion<T> operator*(const Quaternion<T> &q1, const T a)
 template <typename T>
 Quaternion<T> operator*(const T a, const Quaternion<T> &q1)
 {
-	std::cout << ":Quaternion" << std::endl;
 	return q1 * a;
 }
 
@@ -139,19 +138,10 @@ inline T Quaternion<T>::norm() const
 	return sqrt(coeff.dot(coeff));
 }
 
-/*
 template <typename T>
-inline T Quaternion<T>::dot(Quaternion<T> &q) const
+inline T Quaternion<T>::dot(Quaternion<T> &q1) const
 {
-	return coeff.dot(q.coeff);
-} 
-*/
-
-template <typename T>
-template <typename _T>
-inline T Quaternion<T>::dot(_T &q1, _T &q2)
-{
-	return q1.getCoeff().dot(q2.getCoeff());
+	return coeff.dot(coeff);
 }
 
 template <typename T>
@@ -167,19 +157,22 @@ inline Quaternion<T> Quaternion<T>::inv() const
 }
 
 template <typename T>
-inline T Quaternion<T>::getAngle() const
+inline T UnitQuaternion<T>::getAngle() const
 {
-	return 2 * acos(coeff[0]);
+	return 2 * acos(this->coeff[0]);
 }
 
 template <typename T>
-inline cv::Vec<T, 3> Quaternion<T>::getAxis() const
+inline cv::Vec<T, 3> UnitQuaternion<T>::getAxis() const
 {
 	T angle = getAngle();
+	cv::Vec<T, 4> coeff = this->coeff;
 	cv::Vec<T, 3> axis;
-	axis[0] = coeff[1] / sin(angle / 2);
-	axis[1] = coeff[2] / sin(angle / 2);
-	axis[2] = coeff[3] / sin(angle / 2);
+	if (abs(sin(angle)) < 0.0001)
+		return axis = {0, 0 ,0}; // TBD	
+	axis[0] = coeff[1] / sin(angle);
+	axis[1] = coeff[2] / sin(angle);
+	axis[2] = coeff[3] / sin(angle);
 	return axis;
 }
 
@@ -195,19 +188,20 @@ inline Quaternion<T> Quaternion<T>::t() const
 template <typename T>
 cv::Mat UnitQuaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis)
 {
-	assert(isNormalized(axis) == true);
+	// assert(isNormalized() == true);
 	// if (Quaternion<T>::isNormalized(axis) == false)
 	// {
 	//     throw("balabala")
 	// }
 	T a = cos(angle / 2), b = sin(angle / 2) * axis[0], c = sin(angle / 2) * axis[1], d = sin(angle / 2) * axis[2];
-	return UnitQuaternion<T>(a, b, c, d).toRotMat();
+	return UnitQuaternion<T>(a, b, c, d).toRotMat33();
 }
 	
 template <typename T>
 cv::Mat UnitQuaternion<T>::toRotMat44()
 {
-	assert(isNormalized(coeff) == true);
+	assert(Quaternion<T>::isNormalized(this->coeff) == true);
+	cv::Vec<T, 4> coeff = this->coeff;
 	T a = coeff[0], b = coeff[1], c = coeff[2], d = coeff[3];
 	cv::Matx<T, 4, 4> R{
 		 1, 0,                       0,                       0,
@@ -220,7 +214,7 @@ cv::Mat UnitQuaternion<T>::toRotMat44()
 template <typename T>
 cv::Mat UnitQuaternion<T>::toRotMat33()
 {
-	assert(Quaternion<T>::isNormalized(coeff) == true);
+	cv::Vec<T, 4> coeff = this->coeff;
 	T a = coeff[0], b = coeff[1], c = coeff[2], d = coeff[3];
 	cv::Matx<T, 3, 3> R{
 		  1 - 2 * (c * c + d * d), 2 * (b * c - a * d),     2 * (a * c + b * d),
@@ -235,23 +229,10 @@ inline cv::Vec<T, 4> Quaternion<T>::getCoeff() const
 	return coeff;
 }
 
-/*
-template <typename T>
-template <typename _T>
-_T Quaternion<T>::transform(_T &beTransed, const T &angle, const cv::Vec<T, 3> &axis)
-{
-	//Todo:: 只修改beTransed,  不复制返回
-	cv::Mat rotateMat = getRotMat(angle, axis); 
-	beTransed = rotateMat * beTransed.t();
-	std::cout << beTransed.t() << std::endl;
-	return beTransed.t();
-}
-*/
 
 template <typename T>
 void Quaternion<T>::transform(cv::Mat &beTransed, const T &angle, const cv::Vec<T, 3> &axis)
 {
-	//Todo:: 只修改beTransed,  不复制返回
 	cv::Mat rotateMat = getRotMat(angle, axis); 
 	beTransed = rotateMat * beTransed.t();
 	beTransed = beTransed.t();
@@ -259,15 +240,14 @@ void Quaternion<T>::transform(cv::Mat &beTransed, const T &angle, const cv::Vec<
 
 
 template <typename T>
-Quaternion<T> Quaternion<T>::lerp(const Quaternion<T> &q1, const Quaternion<T> &q2, T t)
+Quaternion<T> UnitQuaternion<T>::lerp(const UnitQuaternion<T> &q1, const UnitQuaternion<T> &q2, T t)
 {
 	return (1 - t) * q1 + t * q2;
 }
 
 template <typename T>
-Quaternion<T> Quaternion<T>::slerp(Quaternion<T> &q1, Quaternion<T> &q2, T t)
+UnitQuaternion<T> UnitQuaternion<T>::slerp(UnitQuaternion<T> &q1, UnitQuaternion<T> &q2, T t)
 {
-	// q1 and q2 is unit quaternion
 	T angle = acos(q1.dot(q2));
 	if (angle > CV_PI)
 		q1 = -q1;
@@ -277,33 +257,21 @@ Quaternion<T> Quaternion<T>::slerp(Quaternion<T> &q1, Quaternion<T> &q2, T t)
 }
 
 template <typename T>
-inline Quaternion<T> Quaternion<T>::nlerp(const Quaternion<T> &q1, const Quaternion<T> &q2, T t)
+inline UnitQuaternion<T> UnitQuaternion<T>::nlerp(const UnitQuaternion<T> &q1, const UnitQuaternion<T> &q2, T t)
 {
 	return ((1 - t) * q1 + t * q2).normalize();
 }
 
-
 template <typename T>
-inline Quaternion<T> Quaternion<T>::squad(const Quaternion<T> &q1, const Quaternion<T> &q2,
-										  const Quaternion<T> &q3, const Quaternion<T> &q4, T t)
+inline UnitQuaternion<T> Quaternion<T>::getRotQuat(const T& angle, const cv::Vec<T, 3> &axis)
 {
-	return slerp(slerp(q1, q4, t), slerp(q2, q3, t), 2* t * (1 - t));
+	//assert(isNormalized(axis) == true);
+	return UnitQuaternion<T>(cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]);
 }
 
 template <typename T>
-inline Quaternion<T> Quaternion<T>::getRotQuat(const T& angle, const cv::Vec<T, 3> &axis)
-{
-	assert(isNormalized(axis) == true);
-	// if (Quaternion<T>::isNormalized(axis) == false)
-	// {
-	//     raise("balabala")
-	// }
-	return Quaternion(cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin((angle / 2)) * axis[2]);
-}
-
-template <typename T>
-template <typename _Tp>
-bool Quaternion<T>::isNormalized(_Tp obj)
+template <typename _T>
+inline bool Quaternion<T>::isNormalized(_T &obj)
 {
 	double eps = 0.00001;
 	double normVar = sqrt(obj.dot(obj));
@@ -357,201 +325,65 @@ UnitQuaternion<T>::UnitQuaternion(cv::Mat &R)
 			qw = (R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
 		}
 	}
-	coeff = {qw, qx, qy, qz}; 
+	this->coeff = {qw, qx, qy, qz}; 
 }
 
 template <typename T>
-UnitQuaternion<T>::UnitQuaternion(const Quaternion<T> &q):coeff(q.normalize().coeff){}
-
-
-template <typename T>
-UnitQuaternion<T>::UnitQuaternion(const UnitQuaternion<T> &q):coeff(q.coeff){std::cout<<"copy constuctor"<<std::endl;}
+UnitQuaternion<T>::UnitQuaternion(const Quaternion<T> &q){
+	this->coeff = q.normalize().coeff;
+}
 
 template <typename T>
-UnitQuaternion<T>::UnitQuaternion(const cv::Vec<T, 4> &coeff):coeff(coeff){}
-/*{
+UnitQuaternion<T>::UnitQuaternion(const UnitQuaternion<T> &q){
+	this->coeff = q.normalize().coeff;
+}
+
+template <typename T>
+UnitQuaternion<T>::UnitQuaternion(const cv::Vec<T, 4> &coeff)
+{
 	// assert(coeff.dot(coeff) == 1);
-		std::cout << "Vec constructor here" << std::endl;
-	//	throw "vector must be normalized";
+	std::cout << "Vec constructor here" << std::endl;
+	//this->coeff = Quaternion<T>(coeff).normalize().coeff;
 	this->coeff = coeff;
-}*/	
+}	
 
 template <typename T>
 UnitQuaternion<T>::UnitQuaternion(const T &angle, cv::Vec<T, 3> &axis)
 {
-	// std::cout << axis.dot(axis)<<std::endl;
-	// assert(axis.dot(axis) == 1.0); 会报错
-	// throw "axis must be normalized";
-	coeff = {cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]};
+	this->coeff = {cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]};
 }		
 
 template <typename T>
-UnitQuaternion<T>::UnitQuaternion(T qw, T qx, T qy, T qz):coeff(qw, qx, qy, qz){}
-
->>>>>>> f3b406c4eb5579992de33388eecfbe092f9f5901
-
-template <typename T>
-cv::Vec<T, 4> UnitQuaternion<T>::getCoeff()
-{
-	return coeff;
+UnitQuaternion<T>::UnitQuaternion(const T qw, const T qx, const T qy, const T qz){
+	this->coeff = Quaternion<T>(qw, qx, qy, qz).normalize().coeff;
 }
 
 template <typename T>
-std::ostream &operator<<(std::ostream &os, const UnitQuaternion<T> &q)
+Quaternion<T> UnitQuaternion<T>::log(UnitQuaternion<T> &q1)
 {
-	os << q.coeff;
-	return os;
-}
-
-template <typename T>
-inline UnitQuaternion<T> UnitQuaternion<T>::operator-() const
-{
-	return UnitQuaternion<T>(-coeff);
-}
-
-
-template <typename T>
-inline bool UnitQuaternion<T>::operator==(const UnitQuaternion<T> &q) const
-{
-	return coeff == q.coeff;
-}
-
-template <typename T>
-inline UnitQuaternion<T> UnitQuaternion<T>::operator+(const UnitQuaternion<T> &q1) const
-{
-	//return UnitQuaternion<T>(*this) += q1; //error
-	//cv::Vec<T, 4> coe{q1.coeff + this->coeff};
-	//UnitQuaternion<T> q(coe);
-	// UnitQuaternion<T> q(q1.coeff + this->coeff); //error
-	//return q;
-	
-	return UnitQuaternion<T>(coeff + q1.coeff); //error
-
-}
-
-template <typename T>
-inline UnitQuaternion<T>& UnitQuaternion<T>::operator+=(const UnitQuaternion<T> &q1)
-{
-	coeff += q1.coeff;
-	return *this;
-}
-
-template <typename T>
-inline UnitQuaternion<T> UnitQuaternion<T>::operator-(const UnitQuaternion<T> &q1) const
-{
-	return UnitQuaternion<T>(coeff - q1.coeff);
-}
-
-
-template <typename T>
-inline UnitQuaternion<T>& UnitQuaternion<T>::operator-=(const UnitQuaternion<T> &q1)
-{
-	coeff -= q1.coeff;
-	return *this;
-}
-
-
-template <typename T>
-inline UnitQuaternion<T> UnitQuaternion<T>::operator*(const UnitQuaternion<T> &q1) const
-{
-	/*cv::Vec<T, 4> vec{coeff * q1.coeff};
-	UnitQuaternion<T> q(vec);
-	return q;
-	*/
-	return UnitQuaternion<T>(coeff * q1.coeff);
-}
-
-template <typename T>
-inline Quaternion<T> UnitQuaternion<T>::operator*(Quaternion<T> &q1) const
-{
-	return Quaternion<T>(coeff * q1.getCoeff());
-
-
-template <typename T>
-UnitQuaternion<T> operator*(const UnitQuaternion<T> &q1, const T a)
-{
-	/*
-	cv::Vec<T, 4> vec{q1.coeff * a};
-	UnitQuaternion<T> q(vec);
-	return q;
-	*/
-	return UnitQuaternion<T>(q1.coeff * a);
-}
-
-template <typename T>
-UnitQuaternion<T> operator*(const T a, const UnitQuaternion<T> &q1)
-{
-	/*
-	cv::Vec<T, 4> vec{q1.coeff * a};
-	UnitQuaternion<T> q(vec);
-	return q;!>!/
-	*/
-	return q1 * a; 
-}
-
-template <typename T>
-inline UnitQuaternion<T>& UnitQuaternion<T>::operator*=(const UnitQuaternion<T> &q1)
-{
-	coeff *= q1.coeff;
-	return *this;
-}
-
-template <typename T>
-UnitQuaternion<T>& UnitQuaternion<T>::operator*=(const T &q1)
-{
-	coeff *= q1;
-	return *this;
-}
-
-template <typename T>
-inline UnitQuaternion<T>& UnitQuaternion<T>::operator/=(const T &a)
-{
-	coeff /= a;
-	return *this;
-}
-
-template <typename T>
-inline UnitQuaternion<T> UnitQuaternion<T>::operator/(const T &a) const
-{
-	return UnitQuaternion<T>(coeff / a);
-}
-
-template <typename T>
-inline const T& UnitQuaternion<T>::operator[](std::size_t n) const
-{
-	return coeff[n];
-}
-
-template <typename T>
-inline T& UnitQuaternion<T>::operator[](std::size_t n)
-{
-	return coeff[n];
-}
-
-		
-template <typename T>
-Quaternion<T> UnitQuaternion<T>::log() const
-{
+	cv::Vec<T, 4> coeff = q1.getCoeff();
 	T alpha = acos(coeff[0]);
 	if (abs(sin(alpha)) < 0.00001)
 	{
-		return Quaternion<T>(0, coeff[1], coeff[2], coeff[3]);
+		return Quaternion<T>(0, coeff[1], coeff[2], coeff[3]); //TBD
 	}
 	T k = alpha / sin(alpha);
 	return Quaternion<T>(0, coeff[1] * k, coeff[2] * k, coeff[3] * k);
 }
 
 template <typename T>
-UnitQuaternion<T> Quaternion<T>::exp() const
+UnitQuaternion<T> Quaternion<T>::exp(Quaternion<T> &q1)
 {
+	cv::Vec<T, 4> coeff = q1.getCoeff();
 	T alpha = sqrt(coeff.dot(coeff));
-	T k = abs(alpha) < 0.00001 ? 1 : (sin(alpha) / alpha);
-	return UnitQuaternion<T>(cos(alpha), coeff[1] * k, coeff[2] * k, coeff[3] * k);
+	T k = abs(alpha) < 0.00001 ? 1 : (sin(alpha) / alpha);  //TBD
+	UnitQuaternion<T> q2(cos(alpha), coeff[1] * k, coeff[2] * k, coeff[3] * k);
+	return q2;
 }
 
 template <typename T>
-inline Quaternion<T> UnitQuaternion<T>::squad(const Quaternion<T> &q1, const Quaternion<T> &q2,
-										  	  const Quaternion<T> &q3, const Quaternion<T> &q4, T t)
+inline Quaternion<T> UnitQuaternion<T>::squad(const UnitQuaternion<T> &q1, const UnitQuaternion<T> &q2,
+										  	  const UnitQuaternion<T> &q3, const UnitQuaternion<T> &q4, T t)
 {
 	return slerp(slerp(q1, q4, t), slerp(q2, q3, t), 2 * t * (1 - t));
 }
@@ -562,9 +394,10 @@ UnitQuaternion<T> UnitQuaternion<T>::interPoint(const UnitQuaternion<T> &q0,
 									 			const UnitQuaternion<T> &q2) const
 {
 	Quaternion<T> qconj = q1.conjugate();
-	Quaternion<T> c1 = (qconj * q0).log();
-	Quaternion<T> c2 = (qconj * q2).log();
-	return q1 * (- (c1 + c2) / 4).exp().normalize();
+	Quaternion<T> c1 = log(qconj * q0);
+	Quaternion<T> c2 = log(qconj * q2);
+	UnitQuaternion<T> res =  q1 * exp((- (c1 + c2) / 4)).normalize();
+	return res;
 }
 
 template <typename T>
@@ -583,9 +416,8 @@ UnitQuaternion<T> UnitQuaternion<T>::spline(const UnitQuaternion<T> &q0, const U
 }
 
 int main(){
-	//test_operator();
+	test_operator();
 	test_unit_basic();
-	//UnitQuaternion<double> q1(1,2,3,4);
 	
 	return 0;
 }
