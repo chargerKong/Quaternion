@@ -9,10 +9,6 @@ void test_operator()
 {
 	
 	Quaternion<double> q1(cv::Vec<double, 4>{0,2,3,4});
-	// cv::Mat_<> R = (cv::Mat_<double>(3,3) << -9, 10, 0, 6, -9, 8, 8, 0, -15);
-	// cv::Mat_<double>(3,3) R{-9, 10, 0, 6, -9, 8, 8, 0, -15};
-	// Quaternion<double> q2(R);
-	// std::cout << R.at<double>(0,2) << std::endl;
 	Quaternion<double> q2(cv::Vec<double, 4>{0,2,3,4});
 	double scalar = 3.1;
 	std::cout << "q2:" << q2  << std::endl;
@@ -26,11 +22,11 @@ void test_operator()
 	std::cout << "scalar * q2=:" << (scalar * q2)  << std::endl;
 	std::cout << "q2 * scalar=:" << (q2 * scalar)  << std::endl;
 	std::cout << "q1 / scalar=:" << (q1 / scalar)  << std::endl;
-	assert(q1.coeff + q2.coeff == (q1 + q2).coeff);
-	assert(q1.coeff - q2.coeff == (q1 - q2).coeff);
-	assert(q1.coeff / scalar == (q1 /scalar).coeff);
-	assert(q1.coeff * q2.coeff == (q1 * q2).coeff);
-	assert(q2.coeff * q1.coeff == (q2 * q1).coeff);
+	assert(q1.getCoeff() + q2.getCoeff() == (q1 + q2).getCoeff());
+	assert(q1.getCoeff() - q2.getCoeff() == (q1 - q2).getCoeff());
+	assert(q1.getCoeff() / scalar == (q1 /scalar).getCoeff());
+	assert(q1.getCoeff() * q2.getCoeff() == (q1 * q2).getCoeff());
+	assert(q2.getCoeff() * q1.getCoeff() == (q2 * q1).getCoeff());
 	assert(q1 * scalar == scalar * q1);
 	const Quaternion<double> q3 = q1;
 	q1 += q2;
@@ -67,7 +63,9 @@ void test_operator()
 
 	std::cout <<"q1 * q1.inv() = " <<  q1 * q1.inv() << std::endl;
 	
-	std::cout << "q1.getRotMat(30,[1,2,3]) = " << Quaternion<double>::getRotMat(30, cv::Vec<double, 3>{1,2,3} / sqrt(14))<< std::endl;
+	// std::cout << "q1.getRotMat(30,[1,2,3]) = " <<
+	// UnitQuaternion<double>::getRotMat(30, cv::Vec<double, 3>{1,2,3} /
+	// sqrt(14))<< std::endl;
 	
 	// q1.transform(30, cv::Vec<double, 3>{1,2,3} / sqrt(14));
 	// std::cout << "after transformation" << q1 << std::endl;

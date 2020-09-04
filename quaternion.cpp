@@ -8,7 +8,7 @@
 #include <math.h>
 #include "test/test_basic.cpp"
 #include "test/test_unit_basic.cpp"
-//using namespace cv;
+// using namespace cv;
 
 template <typename T>
 Quaternion<T>::Quaternion(cv::Vec<T, 4> coeff):coeff(coeff){}
@@ -16,6 +16,11 @@ Quaternion<T>::Quaternion(cv::Vec<T, 4> coeff):coeff(coeff){}
 template <typename T>
 Quaternion<T>::Quaternion(T qw, T qx, T qy, T qz):coeff(qw, qx, qy, qz){}
 
+template <typename T>
+Quaternion<T>::Quaternion(const T angle, const cv::Vec<T, 3> &axis)
+{
+	coeff = (cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]);
+}
 
 template <typename T>
 inline Quaternion<T> Quaternion<T>::operator-() const
@@ -135,6 +140,8 @@ inline Quaternion<T> Quaternion<T>::conjugate() const
 template <typename T>
 inline T Quaternion<T>::norm() const
 {
+	
+	std::cout << conjugate() << std::endl;
 	return sqrt(coeff.dot(coeff));
 }
 
@@ -175,16 +182,7 @@ inline cv::Vec<T, 3> UnitQuaternion<T>::getAxis() const
 	axis[2] = coeff[3] / sin(angle);
 	return axis;
 }
-
 /*
-template <typename T>
-inline Quaternion<T> Quaternion<T>::t() const
-{
-	std::cout << coeff.t() << std::endl;
-	return Quaternion(coeff.t());
-}
-*/
-
 template <typename T>
 cv::Mat UnitQuaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis)
 {
@@ -196,11 +194,10 @@ cv::Mat UnitQuaternion<T>::getRotMat(const T &angle, const cv::Vec<T, 3> &axis)
 	T a = cos(angle / 2), b = sin(angle / 2) * axis[0], c = sin(angle / 2) * axis[1], d = sin(angle / 2) * axis[2];
 	return UnitQuaternion<T>(a, b, c, d).toRotMat33();
 }
-	
+*/
 template <typename T>
 cv::Mat UnitQuaternion<T>::toRotMat44()
 {
-	assert(Quaternion<T>::isNormalized(this->coeff) == true);
 	cv::Vec<T, 4> coeff = this->coeff;
 	T a = coeff[0], b = coeff[1], c = coeff[2], d = coeff[3];
 	cv::Matx<T, 4, 4> R{
@@ -229,15 +226,15 @@ inline cv::Vec<T, 4> Quaternion<T>::getCoeff() const
 	return coeff;
 }
 
-
+/*
 template <typename T>
-void Quaternion<T>::transform(cv::Mat &beTransed, const T &angle, const cv::Vec<T, 3> &axis)
+void UnitQuaternion<T>::transform(cv::Mat &beTransed, const T &angle, const cv::Vec<T, 3> &axis)
 {
 	cv::Mat rotateMat = getRotMat(angle, axis); 
 	beTransed = rotateMat * beTransed.t();
 	beTransed = beTransed.t();
 }
-
+*/
 
 template <typename T>
 Quaternion<T> UnitQuaternion<T>::lerp(const UnitQuaternion<T> &q1, const UnitQuaternion<T> &q2, T t)
@@ -262,19 +259,12 @@ inline UnitQuaternion<T> UnitQuaternion<T>::nlerp(const UnitQuaternion<T> &q1, c
 	return ((1 - t) * q1 + t * q2).normalize();
 }
 
-template <typename T>
-inline UnitQuaternion<T> Quaternion<T>::getRotQuat(const T& angle, const cv::Vec<T, 3> &axis)
-{
-	//assert(isNormalized(axis) == true);
-	return UnitQuaternion<T>(cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]);
-}
 
 template <typename T>
-template <typename _T>
-inline bool Quaternion<T>::isNormalized(_T &obj)
+inline bool Quaternion<T>::isNormal() const
 {
 	double eps = 0.00001;
-	double normVar = sqrt(obj.dot(obj));
+	double normVar = sqrt(coeff.dot(coeff));
 	if ((normVar > 1 - eps) && (normVar < 1 + eps))
 		return true;
 	return false;
@@ -348,7 +338,7 @@ UnitQuaternion<T>::UnitQuaternion(const cv::Vec<T, 4> &coeff)
 }	
 
 template <typename T>
-UnitQuaternion<T>::UnitQuaternion(const T &angle, cv::Vec<T, 3> &axis)
+UnitQuaternion<T>::UnitQuaternion(const T angle, cv::Vec<T, 3> &axis)
 {
 	this->coeff = {cos(angle / 2), sin(angle / 2) * axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]};
 }		
@@ -416,8 +406,11 @@ UnitQuaternion<T> UnitQuaternion<T>::spline(const UnitQuaternion<T> &q0, const U
 }
 
 int main(){
-	test_operator();
-	test_unit_basic();
-	
+	// test_operator();
+	// test_unit_basic();
+	cv::Vec<double, 4> a{1,2,3,4};
+	Quaternion<double> q(1,2,3,4);
+	q.norm();
+	// q.normalize();
 	return 0;
 }

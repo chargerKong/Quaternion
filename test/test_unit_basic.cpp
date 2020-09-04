@@ -6,7 +6,7 @@ void test_unit_basic()
 	cv::Vec<double, 3> axis{1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3)};
 	cv::Vec<double, 4> coeff{cos(angle / 2), sin(angle / 2)* axis[0], sin(angle / 2) * axis[1], sin(angle / 2) * axis[2]};
 	UnitQuaternion<double> q1;
-	UnitQuaternion<double> q2(coeff);
+	 UnitQuaternion<double> q2(coeff);
 	Quaternion<double> quat(1,2,3,4);
 	Quaternion<double> quat_q2(coeff);
 	UnitQuaternion<double> q3(quat);
@@ -45,7 +45,7 @@ void test_unit_basic()
 	cout << "\ntest for exp and log" << endl;
 	Quaternion<double> q8(0, angle * axis[0], angle * axis[1], angle * axis[2]);
 	cout << "q8 is: \t\t" << q8 << endl;
-	UnitQuaternion<double> a = Quaternion<double>::exp(q8);
+	UnitQuaternion<double> a(Quaternion<double>::exp(q8));
 	cout << "exp(q8) is : \t" << a << endl;
 	Quaternion<double> b = UnitQuaternion<double>::log(a);
 	cout << "log(exp(q8)) is :" << b  << endl;
