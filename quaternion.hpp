@@ -1,7 +1,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/matx.hpp>
 #include <iostream>
-//#include <opencv2/core/mat.hpp>
 //namespace cv 
 //{
 	template <typename T>

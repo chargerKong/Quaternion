@@ -245,12 +245,14 @@ Quaternion<T> UnitQuaternion<T>::lerp(const UnitQuaternion<T> &q1, const UnitQua
 template <typename T>
 UnitQuaternion<T> UnitQuaternion<T>::slerp(UnitQuaternion<T> &q1, UnitQuaternion<T> &q2, T t)
 {
-	T angle = acos(q1.dot(q2));
-	if (angle > CV_PI)
+	T cosTheta = q1.dot(q2);
+	if (cosTheta < 0)
 		q1 = -q1;
-	else if (angle < CV_PI / 180) // TBD
+	else if (angle > 0.999) // TBD
 		return nlerp(q1, q2, t);
-	return sin((1 - t) * angle) * q1 / sin(angle) + sin(t * angle) / sin(angle) * q2;
+	T sinTheta = sqrt(1 - cosTheta * cosTheta);
+	T angle = atan2(sinTheta, cosTheta);
+	return sin((1 - t) * angle) * q1 / sinTheta + sin(t * angle) / sinTheta * q2;
 }
 
 template <typename T>
