@@ -74,7 +74,7 @@ namespace cv
 		Quat<T> inv() const;
 		
 		template <typename _T>
-		friend UnitQuat<_T> exp(const Quat<_T> &q) const;
+		friend Quat<_T> exp(const Quat<_T> &q) const;
 		{
 			return q.exp();
 		}
@@ -88,7 +88,7 @@ namespace cv
 		}
 		
 		template <typename _T>
-		friend UnitQuat<_T> log(const Quat<_T> &q) const;
+		friend Quat<_T> log(const Quat<_T> &q) const;
 		
 		Quat<T> log() const
 		{
