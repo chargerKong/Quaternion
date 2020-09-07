@@ -122,9 +122,8 @@ namespace cv
 		
 		
 		// functional operation
-		void transform44(cv::Mat &beTransed) const;
-		void transform33(cv::Mat &beTransed) const;
-		static cv::Mat getRotMat(const T&, const cv::Vec<T, 3>&);
+		void transform44(const cv::Mat &beTransed) const;
+		void transform33(const cv::Mat &beTransed) const;
 		static Quat<T> lerp(const Quat<T> &q1, const Quat &q2,T t);
 		static Quat<T> nlerp(const Quat<T> &q1, const Quat &q2, T t);
 		/** To calculate the transformation between q_0 and q_1 by Spherical
@@ -132,7 +131,7 @@ namespace cv
 		@param q1 a unit Quat @param q2 a unit Quat @param t a
 		number in [0, 1]
 		*/
-		static Quat<T> slerp(Quat<T> &q1, Quat &q2, T t);
+		static Quat<T> slerp(const Quat<T> &q1, const Quat &q2, T t);
 		static Quat<T> squad(const Quat<T> &q1, const Quat<T> &q2, const Quat<T> &q3, const Quat<T> &q4, T t); 
 		Quat<T> interPoint(const Quat<T> &q0, const Quat<T> &q1, const Quat<T> &q2) const;
 		Quat<T> spline(consT Quat<T> &q0, const Quat<T> &q1, const Quat<T> &q20, const Quat<T> &q3, T t) const;
@@ -175,7 +174,6 @@ namespace cv
 		UnitQuat(const T &angle, cv::Vec<T, 3> &axis);
 		UnitQuat(const T qw, const T qx, const T qy, const T qz);
 		
-		static cv::Mat getRotMat(const T&, const cv::Vec<T, 3>&);
 		static Quat<T> lerp(const UnitQuat<T> &q1, const UnitQuat &q2, T t);
 		static UnitQuat<T> nlerp(const UnitQuat<T> &q1, const UnitQuat &q2, T t);
 		//static void transform(cv::Mat &beTransed, const T &angle, const cv::Vec<T, 3> &axis);
