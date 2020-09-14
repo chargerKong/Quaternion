@@ -1,4 +1,5 @@
 # Quaternion
+```
 LICENSE 
 // This file is part of OpenCV project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
@@ -23,6 +24,5 @@ LICENSE
 // See the License for the specific language governing permissions and
 // limitations under the License. 
 //
-// Author: Longbu Wang <riskiest@gmail.com>
-//          Jinheng Zhang <jinheng_zhang@foxmail.com>
-//          Chenqi Shan <chenqi.shan2020@foxmail.com>
+// Author:  Liangqian Kong <chargerKong@126.com>
+```
