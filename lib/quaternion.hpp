@@ -1,3 +1,28 @@
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.  
+//
+//
+//                          License Agreement
+//                For Open Source Computer Vision Library
+//
+// Copyright (C) 2020, Huawei Technologies Co., all rights reserved.
+// Third party copyrights are property of their respective owners.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and 
+// limitations under the License. 
+//
+// Author: Longbu Wang <riskiest@gmail.com>
+//         Liangqian Kong <chargerKong@126.com>#include <opencv2/core.hpp>
 #include <opencv2/core.hpp>
 #include <iostream>
 namespace cv 
@@ -18,7 +43,6 @@ namespace cv
      * where ||q|| represents the norm of q
      * all functions will be degenerate to unit cases when ||q|| = 1
      */
-
     template <typename _Tp>
     class Quat
     {
@@ -41,7 +65,7 @@ namespace cv
          * e^q = e^w (cos||v||+ \frac{v}{||v||sin||v||})
          */
         template <typename T>
-        friend Quat<T> exp(const Quat<T>& /*q*/);
+        friend Quat<T> exp(const Quat<T> &q);
 
         Quat<_Tp> exp() const;
 
@@ -109,63 +133,80 @@ namespace cv
         /**
          * @brief sinh(p) = sin(w)cos(||v||) + cosh(w)\frac{v}{||v||}sin||v||
          */
+/*
         template <typename T>
         friend Quat<T> sinh(const Quat<T> &q1);
-
+*/
         Quat<_Tp> sinh() const;
 
+/*
         template <typename T>
         friend Quat<T> cosh(const Quat<T> &q1);
+*/
 
         Quat<_Tp> cosh() const;
 
+/*
         template <typename T>
         friend Quat<T> tanh(const Quat<T> &q1);
+*/
 
         Quat<_Tp> tanh() const;
 
+/*
         template <typename T>
         friend Quat<T> sin(const Quat<T> &q1);
+*/
 
         Quat<_Tp> sin() const;
 
+/*
         template <typename T>
         friend Quat<T> cos(const Quat<T> &q1);
+*/
 
         Quat<_Tp> cos() const;
 
+/*
         template <typename T>
         friend Quat<T> tan(const Quat<T> &q1);
+*/
 
         Quat<_Tp> tan() const;
 
+/*
         template <typename T>
         friend Quat<T> asin(const Quat<T> &q1);
+*/
 
         Quat<_Tp> asin() const;
 
+/*
         template <typename T>
         friend Quat<T> acos(const Quat<T> &q1);
+*/
 
         Quat<_Tp> acos() const;
 
+/*
         template <typename T>
         friend Quat<T> atan(const Quat<T> &q1);
+*/
 
         Quat<_Tp> atan() const;
-
+/*
         template <typename T>
         friend Quat<T> asinh(const Quat<T> &q1);
-
+*/
         Quat<_Tp> asinh() const;
-
+/*
         template <typename T>
         friend Quat<T> acosh(const Quat<T> &q1);
-
+*/
         Quat<_Tp> acosh() const;
 
-        template <typename T>
-        friend Quat<T> atanh(const Quat<T> &q1);
+        //template <typename T>
+        //friend Quat<T> atanh(const Quat<T> &q1);
 
         Quat<_Tp> atanh() const;
 
@@ -328,9 +369,10 @@ namespace cv
 
         _Tp w, x, y, z;
     };
+    
     template <typename T>
     Quat<T> inv(const Quat<T> &q1);
-
+/*
     template <typename T>
     Quat<T> sinh(const Quat<T> &q1);
 
@@ -374,14 +416,14 @@ namespace cv
     Quat<T> exp(const Quat<T> &q);
 
     template <typename T>
-    Quat<T> log(const Quat<T>& /*q*/);
+    Quat<T> log(const Quat<T> &q);
 
     template <typename T>
     Quat<T> power(const Quat<T>& q, T x);
 
     template <typename T>
     Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q);
-
+*/
     template <typename S>
     Quat<S> operator*(const S, const Quat<S>&);
 
@@ -392,3 +434,5 @@ namespace cv
     std::ostream& operator<<(std::ostream&, const Quat<S>&);
 
 }//namespace
+int Factorial(int n);
+
