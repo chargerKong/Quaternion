@@ -24,11 +24,11 @@
 // Author: Longbu Wang <riskiest@gmail.com>
 //         Liangqian Kong <chargerKong@126.com>#include <opencv2/core.hpp>
 #include "quaternion.hpp"
-using namespace cv;
+
 #include <math.h>
 #define EPS 0.0001
 #include <vector>
-
+namespace cv{
 template <typename T>
 Quat<T>::Quat(const cv::Vec<T, 4> &coeff):w(coeff[0]), x(coeff[1]), y(coeff[2]), z(coeff[3]){}
 
@@ -39,7 +39,7 @@ Quat<T>::Quat(const T qw, const T qx, const T qy, const T qz):w(qw), x(qx), y(qy
 template <typename T>
 Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis)
 { 	
-    T vNorm = cv::sqrt(axis.dot(axis));
+    T vNorm = std::sqrt(axis.dot(axis));
     w = std::cos(angle / 2);
     x = std::sin(angle / 2) * (axis[0] / vNorm);
     y = std::sin(angle / 2) * (axis[1] / vNorm);
@@ -143,13 +143,13 @@ inline Quat<T> Quat<T>::operator*(const Quat<T> &q1) const
 
 
 template <typename T>
-Quat<T> cv::operator*(const Quat<T> &q1, const T a)
+Quat<T> operator*(const Quat<T> &q1, const T a)
 {
     return Quat<T>(a * q1.w, a * q1.x, a * q1.y, a * q1.z);
 }
 
 template <typename T>
-Quat<T> cv::operator*(const T a, const Quat<T> &q1)
+Quat<T> operator*(const T a, const Quat<T> &q1)
 {
     return Quat<T>(a * q1.w, a * q1.x, a * q1.y, a * q1.z);
 }
@@ -169,6 +169,16 @@ inline Quat<T>& Quat<T>::operator*=(const Quat<T> &q1)
     return *this;
 }
 
+template <typename T>
+inline Quat<T>& Quat<T>::operator/=(const Quat<T> &q1)
+{
+    Quat<T> q(*this * q1.inv());
+    w = q.w;
+    x = q.x;
+    y = q.y;
+    z = q.z;
+    return *this;
+}
 template <typename T>
 Quat<T>& Quat<T>::operator*=(const T &q1)
 {
@@ -244,7 +254,7 @@ inline T& Quat<T>::operator[](std::size_t n)
 }
 
 template <typename T>
-std::ostream & cv::operator<<(std::ostream &os, const Quat<T> &q)
+std::ostream & operator<<(std::ostream &os, const Quat<T> &q)
 {
     os << "Quat " << cv::Vec<T, 4>{q.w, q.x, q.y, q.z};
     return os;
@@ -576,17 +586,27 @@ inline Quat<T> Quat<T>::atan() const
 }
 
 template <typename T>
-inline T Quat<T>::getAngle() const
+inline T Quat<T>::getAngle(bool assumeUnit) const
 {
+    if (assumeUnit)
+    {
+        return 2 * std::acos(w);
+    }
+    if (x * x + y * y + z * z < EPS || norm() < EPS )
+    {
+        throw "this quaternion does not represent a rotation";
+    }
     return 2 * std::acos(w / norm());
 }
 
 template <typename T>
-inline cv::Vec<T, 3> Quat<T>::getAxis() const
+inline cv::Vec<T, 3> Quat<T>::getAxis(bool assumeUnit) const
 {
-    T angle = getAngle();
-    if (abs(std::sin(angle / 2)) < EPS)
-        return cv::Vec<T, 3> {x, y, z}; // TBD
+    T angle = getAngle(assumeUnit);
+    if (assumeUnit)
+    {
+        return Vec<T, 3>{x, y, z} / std::sin(angle / 2);
+    }
     return cv::Vec<T, 3> {x, y, z} / (norm() * std::sin(angle / 2));
 }
 
@@ -736,15 +756,6 @@ Quat<T> Quat<T>::spline(Quat<T> &q0, Quat<T> &q1, Quat<T> &q2, Quat<T> &q3, cons
     
     return squad(q1, s1, s2, q2, t, assumeUnit);
 }
-int Factorial(int n){
-    if (n==0)
-    {
-        return 1;
-    }
-    else
-    {
-        return n * Factorial(n - 1);
-    }
 }
 /*a
 int main(){

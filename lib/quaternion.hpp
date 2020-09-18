@@ -265,7 +265,7 @@ namespace cv
         * \psi = 2 *arccos(\frac{w}{||q||})
         */
         //_Tp getAngle(bool assumeUnit=false) const;
-        _Tp getAngle() const;
+        _Tp getAngle(bool assumeUnit=false) const;
 
         /**
         * @brief get the axis of quaternion
@@ -275,7 +275,7 @@ namespace cv
         *             &= \boldsymbol{n}||q||sin(\theta)
         *      \end{array}
         */
-        cv::Vec<_Tp, 3> getAxis() const;
+        cv::Vec<_Tp, 3> getAxis(bool assumeUnit=false) const;
 
         /**
          * @brief return the dot between q and q1
@@ -358,6 +358,7 @@ namespace cv
         Quat<_Tp> operator/(const _Tp&) const;
         Quat<_Tp> operator/(const Quat<_Tp>&) const;
         Quat<_Tp>& operator/=(const _Tp&);
+        Quat<_Tp>& operator/=(const Quat<_Tp>&);
         _Tp& operator[](std::size_t n);
         const _Tp& operator[](std::size_t n) const;
         template <typename S>
