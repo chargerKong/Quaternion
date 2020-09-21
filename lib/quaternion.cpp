@@ -22,9 +22,9 @@
 // limitations under the License. 
 //
 // Author: Longbu Wang <riskiest@gmail.com>
-//         Liangqian Kong <chargerKong@126.com>#include <opencv2/core.hpp>
+//         Liangqian Kong <chargerKong@126.com>
 #include "quaternion.hpp"
-
+#include <iomanip>
 #include <math.h>
 #define EPS 0.0001
 #include <vector>
@@ -32,18 +32,21 @@ namespace cv{
 template <typename T>
 Quat<T>::Quat(const cv::Vec<T, 4> &coeff):w(coeff[0]), x(coeff[1]), y(coeff[2]), z(coeff[3]){}
 
-
 template <typename T>
 Quat<T>::Quat(const T qw, const T qx, const T qy, const T qz):w(qw), x(qx), y(qy), z(qz){}
 
 template <typename T>
-Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis)
+Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis, const T qNorm)
 { 	
     T vNorm = std::sqrt(axis.dot(axis));
-    w = std::cos(angle / 2);
-    x = std::sin(angle / 2) * (axis[0] / vNorm);
-    y = std::sin(angle / 2) * (axis[1] / vNorm);
-    z = std::sin(angle / 2) * (axis[2] / vNorm);
+    if (vNorm < EPS || qNorm < EPS)
+    {
+        throw "this quaternion does not represent a rotation";
+    }
+    w = std::cos(angle / 2) * qNorm;
+    x = std::sin(angle / 2) * (axis[0] / vNorm) * qNorm;
+    y = std::sin(angle / 2) * (axis[1] / vNorm) * qNorm;
+    z = std::sin(angle / 2) * (axis[2] / vNorm) * qNorm;
 }
 
 template <typename T>
@@ -54,7 +57,7 @@ Quat<T>::Quat(const cv::Mat &R)
     T trace = R.at<T>(0, 0) + R.at<T>(1, 1) + R.at<T>(2, 2);
     if (trace > 0)
     {
-        S = sqrt(trace + 1) * 2;
+        S = std::sqrt(trace + 1) * 2;
         x = (R.at<T>(1, 2) - R.at<T>(2, 1)) / S;
         y = (R.at<T>(2, 0) - R.at<T>(0, 2)) / S;
         z = (R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
@@ -63,7 +66,7 @@ Quat<T>::Quat(const cv::Mat &R)
     else if (R.at<T>(0, 0) > R.at<T>(1, 1) && R.at<T>(0, 0) > R.at<T>(2, 2))
     {
 
-        S = sqrt(1.0 + R.at<T>(0, 0) - R.at<T>(1, 1) - R.at<T>(2, 2)) * 2;
+        S = std::sqrt(1.0 + R.at<T>(0, 0) - R.at<T>(1, 1) - R.at<T>(2, 2)) * 2;
         x = 0.25 * S;
         y = (R.at<T>(1, 0) + R.at<T>(0, 1)) / S;
         z = (R.at<T>(0, 2) + R.at<T>(2, 0)) / S;
@@ -71,7 +74,7 @@ Quat<T>::Quat(const cv::Mat &R)
     }
     else if (R.at<T>(1, 1) > R.at<T>(2, 2))
     {
-        S = sqrt(1.0 - R.at<T>(0, 0) + R.at<T>(1, 1) - R.at<T>(2, 2)) * 2;
+        S = std::sqrt(1.0 - R.at<T>(0, 0) + R.at<T>(1, 1) - R.at<T>(2, 2)) * 2;
         x = (R.at<T>(0, 1) + R.at<T>(1, 0)) / S;
         y = 0.25 * S;
         z = (R.at<T>(1, 2) + R.at<T>(2, 1)) / S;
@@ -79,12 +82,27 @@ Quat<T>::Quat(const cv::Mat &R)
     }
     else
     {
-        S = sqrt(1.0 - R.at<T>(0, 0) - R.at<T>(1, 1) + R.at<T>(2, 2)) * 2;
+        S = std::sqrt(1.0 - R.at<T>(0, 0) - R.at<T>(1, 1) + R.at<T>(2, 2)) * 2;
         x = (R.at<T>(0, 2) + R.at<T>(2, 0)) / S;
         y = (R.at<T>(1, 2) + R.at<T>(2, 1)) / S;
         z = 0.25 * S;
         w = (R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
     }
+}
+
+template <typename T>
+Quat<T>::Quat(const Vec<T, 3> &rodrigues)
+{
+    T tanVal = std::sqrt(rodrigues.dot(rodrigues));
+    if (tanVal < EPS)
+    {
+        throw "This rodrigues vetor can't be transformed to a quaternion";
+    }
+    T angle = std::atan(tanVal);
+    w = std::cos(angle);
+    x = rodrigues[0] / tanVal * std::sin(angle);
+    y = rodrigues[1] / tanVal * std::sin(angle);
+    z = rodrigues[2] / tanVal * std::sin(angle);
 }
 
 
@@ -261,6 +279,12 @@ std::ostream & operator<<(std::ostream &os, const Quat<T> &q)
 }
 
 template <typename T>
+inline T Quat<T>::at(size_t index) const
+{
+    return (*this)[index];
+}
+
+template <typename T>
 inline Quat<T> Quat<T>::conjugate() const
 {
     return Quat<T>(w, -x, -y, -z);
@@ -272,13 +296,11 @@ inline T Quat<T>::norm() const
     return std::sqrt(dot(*this));
 }
 
-/*
 template <typename T>
-Quat<T> cv::exp(const Quat<T> &q)
+Quat<T> exp(const Quat<T> &q)
 {
     return q.exp();
 }
-*/
 
 template <typename T>
 Quat<T> Quat<T>::exp() const
@@ -289,43 +311,52 @@ Quat<T> Quat<T>::exp() const
     return std::exp(w) * Quat<T>(std::cos(normV), v[0] * k, v[1] * k, v[2] * k);
 }
 
-/*
 template <typename T>
-Quat<T> cv::log(const Quat<T> &q)
+Quat<T> log(const Quat<T> &q, bool assumeUnit)
 {
-    return q.log();
+    return q.log(assumeUnit);
 }
-*/		
 
 template <typename T>
-Quat<T> Quat<T>::log() const
+Quat<T> Quat<T>::log(bool assumeUnit) const
 {
     cv::Vec<T, 3> v{x, y, z};
     T vNorm = std::sqrt(v.dot(v));
+    if (assumeUnit)
+    {
+        T k = vNorm < EPS ? 1 : std::acos(w);
+        return Quat<T>(0, v[0] * k, v[1] * k, v[2] * k);
+    }   
     T qNorm = norm();
-    T k = vNorm < EPS ? 1 : std::acos(w / qNorm) / vNorm;
+    if (qNorm < EPS)
+    {
+        throw "This quaternion can't be applied to log";
+    }
+    T k = vNorm < EPS ? 1 : std::acos(w / qNorm);
     return Quat<T>(std::log(qNorm), v[0] * k, v[1] * k, v[2] *k);
 }
 
-/*
 template <typename T>
-inline Quat<T> cv::power(const Quat<T> &q1, T x)
+inline Quat<T> power(const Quat<T> &q1, T x, bool assumeUnit)
 {
-    return q1.power(x);
+    return q1.power(x, assumeUnit);
 }
-*/
 
 template <typename T>
-inline Quat<T> Quat<T>::power(T x) const
+inline Quat<T> Quat<T>::power(T x, bool assumeUnit) const
 {
-    T angle = getAngle();
-    cv::Vec<T, 3> axis = getAxis();
+    T angle = getAngle(assumeUnit);
+    cv::Vec<T, 3> axis = getAxis(assumeUnit);
+    if (assumeUnit)
+    {
+        return Quat<T>(x * angle, axis);
+    }
     return std::pow(norm(), x) * Quat<T>(x * angle, axis);
 }
 
 
 template <typename T>
-inline Quat<T> sqrt(Quat<T> &q)
+inline CV_EXPORTS_W Quat<T> sqrt(Quat<T> &q)
 {
     return q.sqrt();
 }
@@ -336,13 +367,13 @@ inline Quat<T> Quat<T>::sqrt() const
     return power(0.5);
 }
 
-/*
+
 template <typename T>
-inline Quat<T> cv::power(const Quat<T> &p, const Quat<T> &q)
+inline Quat<T> power(const Quat<T> &p, const Quat<T> &q)
 {
     return p.power(q);
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::power(const Quat<T> &q) const
@@ -357,62 +388,77 @@ inline T Quat<T>::dot(Quat<T> q1) const
     return w * q1.w + x * q1.x + y * q1.y + z * q1.z;
 }
 
-/*
+
 template <typename T>
-inline Quat<T> cv::crossProduct(const Quat<T> &p, const Quat<T> &q)
+inline Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q)
 {
     return p.crossProduct(q);
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::crossProduct(const Quat<T> &q) const
 {
-    return (*this * q - q * *this) / 2;
+    return Quat<T> (0, y * q.z - z * q.y, z * q.x - x * q.z, x * q.y - q.x * y);
 }
 
 template <typename T>
 inline Quat<T> Quat<T>::normalize() const
 {
-    return Quat<T>(w / norm(), x / norm(), y / norm(), z / norm()) ;
+    T normVal = norm();
+    if (normVal < EPS)
+    {
+        throw "This can't be normalized.";
+    }
+    return Quat<T>(w / normVal, x / normVal, y / normVal, z / normVal) ;
 }
-/*
+
 template <typename T>
-inline Quat<T> cv::inv(const Quat<T> &q)
+inline Quat<T> inv(const Quat<T> &q)
 {
     return q.inv();
 }
-*/
+
 
 template <typename T>
-inline Quat<T> Quat<T>::inv() const
+inline Quat<T> Quat<T>::inv(bool assumeUnit) const
 {
-    return conjugate() / pow(norm(), 2);
+    if (assumeUnit)
+    {
+        return conjugate();
+    }
+    T norm2 = dot(*this);
+    if (norm2 < EPS)
+    {
+        throw "This quaternion have not inverse";
+    }
+    return conjugate() / norm2;
 }
-/*
+
 template <typename T>
-inline Quat<T> cv::sinh(const Quat<T> &q)
+inline Quat<T> sinh(const Quat<T> &q)
 {
     return q.sinh();
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::sinh() const
 {
     cv::Vec<T, 3> v{x, y ,z};
     T vNorm = std::sqrt(v.dot(v));
+    // add vNorm
     T k = std::cosh(w) * std::sin(vNorm) / vNorm;
     return Quat<T>(std::sinh(w) * std::cos(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
 
-/*
+
 template <typename T>
-inline Quat<T> cv::cosh(const Quat<T> &q)
+inline Quat<T> cosh(const Quat<T> &q)
 {
     return q.cosh();
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::cosh() const
@@ -423,28 +469,25 @@ inline Quat<T> Quat<T>::cosh() const
     return Quat<T>(std::cosh(w) * std::cos(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
 
-/*
-
 template <typename T>
-inline Quat<T> cv::tanh(const Quat<T> &q)
+inline Quat<T> tanh(const Quat<T> &q)
 {
     return q.tanh();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::tanh() const
 {
     return sinh() * cosh().inv();
 }
-/*
+
 
 template <typename T>
-inline Quat<T> cv::sin(const Quat<T> &q)
+inline Quat<T> sin(const Quat<T> &q)
 {
     return q.sin();
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::sin() const
@@ -454,14 +497,12 @@ inline Quat<T> Quat<T>::sin() const
     T k = std::cos(w) * std::sinh(vNorm) / vNorm;
     return Quat<T>(std::sin(w) * std::cosh(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::cos(const Quat<T> &q)
+inline Quat<T> cos(const Quat<T> &q)
 {
     return q.cos();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::cos() const
@@ -471,28 +512,24 @@ inline Quat<T> Quat<T>::cos() const
     T k = std::sin(w) * std::sinh(vNorm) / vNorm;
     return Quat<T>(std::cos(w) * std::cosh(vNorm), -v[0] * k, -v[1] * k, -v[2] * k);
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::tan(const Quat<T> &q)
+inline Quat<T> tan(const Quat<T> &q)
 {
     return q.tan();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::tan() const
 {
     return sin() * cos().inv();
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::asinh(Quat<T> &q)
+inline Quat<T> asinh(Quat<T> &q)
 {
     return q.asinh();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::asinh() const
@@ -502,14 +539,12 @@ inline Quat<T> Quat<T>::asinh() const
     return c2.log();
     // return log(*this + power(*this * *this + Quat<T>(1,0,0,0), 0.5));
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::acosh(const Quat<T> &q)
+inline Quat<T> acosh(const Quat<T> &q)
 {
     return q.acosh();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::acosh() const
@@ -519,14 +554,12 @@ inline Quat<T> Quat<T>::acosh() const
     return c2.log();
     //return cv::log(*this + cv::power(*this * *this - Quat<T>(1,0,0,0), 0.5));
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::atanh(const Quat<T> &q)
+inline Quat<T> atanh(const Quat<T> &q)
 {
     return q.atanh();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::atanh() const
@@ -537,14 +570,12 @@ inline Quat<T> Quat<T>::atanh() const
     return 1 / 2 * (c1 - c2);
     //return 1/2 * (cv::log(ident + *this) - cv::log(ident - *this));
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::asin(const Quat<T> &q)
+inline Quat<T> asin(const Quat<T> &q)
 {
     return q.asin();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::asin() const
@@ -553,14 +584,12 @@ inline Quat<T> Quat<T>::asin() const
     T vNorm = v.norm();
     return -v / vNorm * (*this * v / vNorm).asinh();
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::acos(const Quat<T> &q)
+inline Quat<T> acos(const Quat<T> &q)
 {
     return q.acos();
 }
-*/
 
 template <typename T>
 inline Quat<T> Quat<T>::acos() const
@@ -569,14 +598,13 @@ inline Quat<T> Quat<T>::acos() const
     T vNorm = v.norm();
     return -v / vNorm * acosh();
 }
-/*
 
 template <typename T>
-inline Quat<T> cv::atan(const Quat<T> &q)
+inline Quat<T> atan(const Quat<T> &q)
 {
     return q.atan();
 }
-*/
+
 template <typename T>
 inline Quat<T> Quat<T>::atan() const
 {
@@ -600,14 +628,14 @@ inline T Quat<T>::getAngle(bool assumeUnit) const
 }
 
 template <typename T>
-inline cv::Vec<T, 3> Quat<T>::getAxis(bool assumeUnit) const
+inline Vec<T, 3> Quat<T>::getAxis(bool assumeUnit) const
 {
     T angle = getAngle(assumeUnit);
     if (assumeUnit)
     {
         return Vec<T, 3>{x, y, z} / std::sin(angle / 2);
     }
-    return cv::Vec<T, 3> {x, y, z} / (norm() * std::sin(angle / 2));
+    return Vec<T, 3> {x, y, z} / (norm() * std::sin(angle / 2));
 }
 
 template <typename T>
@@ -615,22 +643,40 @@ cv::Mat Quat<T>::toRotMat4x4() const
 {
     T dotVal = dot(*this);
     cv::Matx<T, 4, 4> R{
-         dotVal, 0                           , 0                           , 0,
-         0     , dotVal - 2 * (y * y + z * z),  2 * (x * y + w * z)        , 2 * (x * z - w * y),
-         0     , 2 * (x * y - w * z)         , dotVal - 2 * (x * x + z * z), 2 * (y * z + w * x),
-         0     , 2 * (x * z + w * y)         , 2 * (y * z - w * x)         , dotVal - 2 * (x * x + y * y)};
+         2* w * w - dotVal, -2 * w * x        , -2 * w * y         ,  - 2 * w * z,
+         -2 * w * x       , dotVal - 2 * x * x, - 2 * x * y        , -2 * x * z,
+         2 * w * y        , -2 * x * y        , dotVal - 2 * y * y , -2 * z * y,
+         2 * w * z        , -2 * x * z        , -2 * y * z         , dotVal - 2 * z * z};
+    return cv::Mat(R.t()).t();
+}
+
+template <typename T>
+cv::Mat Quat<T>::toRotMat3x3(bool assumeUnit) const
+{
+    T a = w, b = x, c = y, d = z;
+    if (!assumeUnit)
+    {
+        Quat<T> qTemp = normalize();
+        a = qTemp.w;
+        b = qTemp.x;
+        c = qTemp.y;
+        d = qTemp.z;
+    }
+    cv::Matx<T, 3, 3> R{
+          1 - 2 * (c * c + d * d), 2 * (b * c + a * d)    , 2 * (b * d - a * c),
+          2 * (b * c - a * d)    , 1 - 2 * (b * b + d * d), 2 * (c * d + a * b),
+          2 * (b * d + a * c)    , 2 * (c * d - a * b)    , 1 - 2 * (b * b + c * c)};
     return cv::Mat(R).t();
 }
 
 template <typename T>
-cv::Mat Quat<T>::toRotMat3x3() const
+Vec<T, 3> Quat<T>::toRodrigues() const
 {
-    assertNormal();
-    cv::Matx<T, 3, 3> R{
-          1 - 2 * (y * y + z * z), 2 * (x * y + w * z)    , 2 * (x * z - w * y),
-          2 * (x * y - w * z)    , 1 - 2 * (x * x + z * z), 2 * (y * z + w * x),
-          2 * (x * z + w * y)    , 2 * (y * z - w * x)    , 1 - 2 * (x * x + y * y)};
-    return cv::Mat(R).t();
+    if (abs(w) < EPS)
+    {
+        throw "the rotate vector is indeterminte";
+    }
+    return Vec<T, 3>{x / w, y / w, z / w};
 }
 
 template <typename T>
@@ -648,30 +694,50 @@ Quat<T> Quat<T>::lerp(const Quat<T> &q0, const Quat<T> &q1, const T t)
 template <typename T>
 Quat<T> Quat<T>::slerp(Quat<T> &q0, Quat<T> &q1, const T t, bool assumeUnit)
 {
+    Quatd v0(q0);
+    Quatd v1(q1);
+
     if (!assumeUnit)
     {
-        q0 = q0.normalize();
-        q1 = q1.normalize();
+        v0 = v0.normalize();
+        v1 = v1.normalize();
         // add warning:
     }
-    T cosTheta = q0.dot(q1);
+    T cosTheta = v0.dot(v1);
     T DOT_THRESHOLD = 0.995;
-    /*if (cosTheta < 0)
+    if (cosTheta > DOT_THRESHOLD)
     {
-        q1 = q1;
+        return nlerp(v0, v1, t, true);
+    }
+    /*
+    if (cosTheta < 0)
+    {
+        v0 = -v0;
+        cosTheta = -cosTheta;
     }
     */
-    if (cosTheta > DOT_THRESHOLD)
-        return nlerp(q0, q1, t);
     T sinTheta = std::sqrt(1 - cosTheta * cosTheta);
     T angle = atan2(sinTheta, cosTheta);
-    return (std::sin((1 - t) * angle) / (sinTheta) * q0 + std::sin(t * angle) / (sinTheta) * q1).normalize();
+    return (std::sin((1 - t) * angle) / (sinTheta) * v0 + std::sin(t * angle) / (sinTheta) * v1).normalize();
 }
 
+
 template <typename T>
-inline Quat<T> Quat<T>::nlerp(const Quat<T> &q0, const Quat<T> &q1, const T t)
+inline Quat<T> Quat<T>::nlerp(Quat<T> &q0, Quat<T> &q1, const T t, bool assumeUnit)
 {
-    return ((1 - t) * q0 + t * q1).normalize();
+    Quat<T> q2 = q0;
+    if (q1.dot(q0) < 0)
+    {
+        q2 = -q2;
+    }
+    if (assumeUnit)
+    {
+        return ((1 - t) * q2 + t * q1).normalize();
+    }
+    // add warning
+    q0 = q0.normalize();
+    q1 = q1.normalize();
+    return ((1 - t) * q2 + t * q1).normalize();
 }
 
 
@@ -721,41 +787,55 @@ Quat<T> Quat<T>::interPoint(Quat<T> &q0, Quat<T> &q1,
         q2 = q2.normalize();
         // add warning in inter
     }
-    
-    Quat<T> c1 = q1.conjugate() * q0;
-    Quat<T> c2 = q1.conjugate() * q2;
-    Quat<T> log1 = c1.log();
-    Quat<T> log22 = c2.log();
-    return q1 * ((-log1 - log22) / 4).exp();
-    //return q1 * cv::exp(-(cv::log(q1.conjugate() * q0 + cv::log(q1.conjugate() * q2))) / 4);
+    return q1 * cv::exp(-(cv::log(q1.conjugate() * q0) + (cv::log(q1.conjugate() * q2))) / 4);
 }
 
 template <typename T>
 Quat<T> Quat<T>::spline(Quat<T> &q0, Quat<T> &q1, Quat<T> &q2, Quat<T> &q3, const T t, bool assumeUnit)
 {
+    Quatd v0, v1, v2, v3;
+    v0 = q0;
+    v1 = q1;
+    v2 = q2;
+    v3 = q3;
     if (!assumeUnit)
     {
-        q0 = q0.normalize();
-        q1 = q1.normalize();
-        q2 = q2.normalize();
-        q3 = q3.normalize();
+        v0 = v0.normalize();
+        v1 = v1.normalize();
+        v2 = v2.normalize();
+        v3 = v3.normalize();
         // add warning
     }
     T cosTheta;
-    std::vector<Quat<T>> vec{q0, q1, q2};
-    for (auto &i: vec)
+    std::vector<Quat<T>> vec{v0, v1, v2, v3};
+    //std::cout << vec << std::endl;
+    for (size_t i = 0; i < 3; ++i)
     {
-        cosTheta = q3.dot(i);
+
+        cosTheta = vec[i].dot(vec[i + 1]);
         if (cosTheta < 0)
         {
-            i = -i;
+            vec[i] = -vec[i];
         }
     }
-    Quat<T> s1 = interPoint(q0, q1, q2, assumeUnit);
-    Quat<T> s2 = interPoint(q1, q2, q3, assumeUnit);
+    //std::cout << vec << std::endl;
+
+    Quat<T> s1 = interPoint(v0, v1, v2, true);
+    Quat<T> s2 = interPoint(v1, v2, v3, true);
     
-    return squad(q1, s1, s2, q2, t, assumeUnit);
+    return squad(v1, s1, s2, v2, t, assumeUnit);
 }
+
+/*
+static Quat<T> splinet(std::vector<Quat<T>> vec, const T t, bool assumeUnit,std::string method)
+{
+    for (auto beg = vec.begin(), end = vec.end();beg != end; ++beg
+    {
+
+    }
+}
+*/
+
 }
 /*a
 int main(){

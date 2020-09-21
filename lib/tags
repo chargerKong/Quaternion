@@ -283,7 +283,7 @@ C_DIALECT	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	557;"	d	file:
 C_DIALECT	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	559;"	d	file:
 DEC	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	472;"	d	file:
 DEC	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	457;"	d	file:
-EPS	quaternion.cpp	7;"	d	file:
+EPS	quaternion.cpp	29;"	d	file:
 EQUALS	build/Makefile	/^EQUALS = =$/;"	m
 HEX	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	483;"	d	file:
 HEX	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	468;"	d	file:
@@ -350,13 +350,14 @@ PLATFORM_ID	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	380;"	d
 PLATFORM_ID	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	383;"	d	file:
 PLATFORM_ID	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	386;"	d	file:
 PLATFORM_ID	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	390;"	d	file:
-QUATERNION_H	quaternion.cpp	2;"	d	file:
-Quat	quaternion.cpp	/^Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis)$/;"	f	class:Quat
-Quat	quaternion.cpp	/^Quat<T>::Quat(const T qw, const T qx, const T qy, const T qz):w(qw), x(qx), y(qy), z(qz){}$/;"	f	class:Quat
-Quat	quaternion.cpp	/^Quat<T>::Quat(const cv::Mat &R)$/;"	f	class:Quat
-Quat	quaternion.cpp	/^Quat<T>::Quat(const cv::Vec<T, 4> &coeff):w(coeff[0]), x(coeff[1]), y(coeff[2]), z(coeff[3]){}$/;"	f	class:Quat
-Quat	quaternion.hpp	/^	class Quat$/;"	c
+Quat	quaternion.cpp	/^Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis, const T qNorm)$/;"	f	class:cv::Quat
+Quat	quaternion.cpp	/^Quat<T>::Quat(const T qw, const T qx, const T qy, const T qz):w(qw), x(qx), y(qy), z(qz){}$/;"	f	class:cv::Quat
+Quat	quaternion.cpp	/^Quat<T>::Quat(const Vec<T, 3> &rodrigues)$/;"	f	class:cv::Quat
+Quat	quaternion.cpp	/^Quat<T>::Quat(const cv::Mat &R)$/;"	f	class:cv::Quat
+Quat	quaternion.cpp	/^Quat<T>::Quat(const cv::Vec<T, 4> &coeff):w(coeff[0]), x(coeff[1]), y(coeff[2]), z(coeff[3]){}$/;"	f	class:cv::Quat
+Quat	quaternion.hpp	/^    class Quat$/;"	c	namespace:cv
 Quat	quaternion_new.hpp	/^	class Quat $/;"	c	namespace:cv
+QuatTest	test.cpp	/^class QuatTest: public ::testing::Test {$/;"	c	namespace:opencv_test::__anon1	file:
 RM	build/Makefile	/^RM = \/usr\/bin\/cmake -E remove -f$/;"	m
 SHELL	build/Makefile	/^SHELL = \/bin\/sh$/;"	m
 SIMULATE_ID	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	163;"	d	file:
@@ -382,30 +383,49 @@ STRINGIFY	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	294;"	d	f
 STRINGIFY_HELPER	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	308;"	d	file:
 STRINGIFY_HELPER	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	293;"	d	file:
 SUFFIXES	build/Makefile	/^SUFFIXES =$/;"	m
+TEST_F	test.cpp	/^TEST_F(QuatTest, basicfuns){$/;"	f	namespace:opencv_test::__anon1
+TEST_F	test.cpp	/^TEST_F(QuatTest, constructor){$/;"	f	namespace:opencv_test::__anon1
+TEST_F	test.cpp	/^TEST_F(QuatTest, interpolation){$/;"	f	namespace:opencv_test::__anon1
+TEST_F	test.cpp	/^TEST_F(QuatTest, opeartor){$/;"	f	namespace:opencv_test::__anon1
+TEST_F	test.cpp	/^TEST_F(QuatTest, quatAttrs){$/;"	f	namespace:opencv_test::__anon1
 UnitQuat	quaternion_new.hpp	/^	class UnitQuat: public Quat<T>$/;"	c	namespace:cv
 a	build/temp.cpp	/^std::string a[10]={$/;"	v
-acos	quaternion.cpp	/^inline Quat<T> acos(Quat<T> &q)$/;"	f
-acosh	quaternion.cpp	/^inline Quat<T> acosh(Quat<T> &q)$/;"	f
-asin	quaternion.cpp	/^inline Quat<T> asin(Quat<T> &q)$/;"	f
-asinh	quaternion.cpp	/^inline Quat<T> asinh(Quat<T> &q)$/;"	f
-assertNormal	quaternion.cpp	/^inline void Quat<T>::assertNormal() const$/;"	f	class:Quat
+acos	quaternion.cpp	/^inline Quat<T> Quat<T>::acos() const$/;"	f	class:cv::Quat
+acos	quaternion.cpp	/^inline Quat<T> acos(const Quat<T> &q)$/;"	f	namespace:cv
+acosh	quaternion.cpp	/^inline Quat<T> Quat<T>::acosh() const$/;"	f	class:cv::Quat
+acosh	quaternion.cpp	/^inline Quat<T> acosh(const Quat<T> &q)$/;"	f	namespace:cv
+angle	test.cpp	/^    double angle = CV_PI;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+asin	quaternion.cpp	/^inline Quat<T> Quat<T>::asin() const$/;"	f	class:cv::Quat
+asin	quaternion.cpp	/^inline Quat<T> asin(const Quat<T> &q)$/;"	f	namespace:cv
+asinh	quaternion.cpp	/^inline Quat<T> Quat<T>::asinh() const$/;"	f	class:cv::Quat
+asinh	quaternion.cpp	/^inline Quat<T> asinh(Quat<T> &q)$/;"	f	namespace:cv
+assertNormal	quaternion.cpp	/^inline void Quat<T>::assertNormal() const$/;"	f	class:cv::Quat
 assertNormal	quaternion_new.hpp	/^		void assertNormal() const$/;"	f	class:cv::Quat
-atan	quaternion.cpp	/^inline Quat<T> atan(Quat<T> &q)$/;"	f
-atanh	quaternion.cpp	/^inline Quat<T> atanh(Quat<T> &q)$/;"	f
-conjugate	quaternion.cpp	/^inline Quat<T> Quat<T>::conjugate() const$/;"	f	class:Quat
+at	quaternion.cpp	/^inline T Quat<T>::at(size_t index) const$/;"	f	class:cv::Quat
+atan	quaternion.cpp	/^inline Quat<T> Quat<T>::atan() const$/;"	f	class:cv::Quat
+atan	quaternion.cpp	/^inline Quat<T> atan(const Quat<T> &q)$/;"	f	namespace:cv
+atanh	quaternion.cpp	/^inline Quat<T> Quat<T>::atanh() const$/;"	f	class:cv::Quat
+atanh	quaternion.cpp	/^inline Quat<T> atanh(const Quat<T> &q)$/;"	f	namespace:cv
+conjugate	quaternion.cpp	/^inline Quat<T> Quat<T>::conjugate() const$/;"	f	class:cv::Quat
 const	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	10;"	d	file:
-cos	quaternion.cpp	/^inline Quat<T> cos(Quat<T> &q)$/;"	f
-cosh	quaternion.cpp	/^inline Quat<T> cosh(Quat<T> &q)$/;"	f
-crossProduct	quaternion.cpp	/^inline Quat<T> crossProduct(Quat<T> &p, Quat<T> &q)$/;"	f
+cos	quaternion.cpp	/^inline Quat<T> Quat<T>::cos() const$/;"	f	class:cv::Quat
+cos	quaternion.cpp	/^inline Quat<T> cos(const Quat<T> &q)$/;"	f	namespace:cv
+cosh	quaternion.cpp	/^inline Quat<T> Quat<T>::cosh() const$/;"	f	class:cv::Quat
+cosh	quaternion.cpp	/^inline Quat<T> cosh(const Quat<T> &q)$/;"	f	namespace:cv
+crossProduct	quaternion.cpp	/^inline Quat<T> Quat<T>::crossProduct(const Quat<T> &q) const$/;"	f	class:cv::Quat
+crossProduct	quaternion.cpp	/^inline Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q)$/;"	f	namespace:cv
+cv	quaternion.cpp	/^namespace cv{$/;"	n	file:
+cv	quaternion.hpp	/^namespace cv $/;"	n
 cv	quaternion_new.hpp	/^namespace cv$/;"	n
-dot	quaternion.cpp	/^inline T Quat<T>::dot(Quat<T> q1) const$/;"	f	class:Quat
-exp	quaternion.cpp	/^Quat<T> exp(const Quat<T> &q)$/;"	f
+dot	quaternion.cpp	/^inline T Quat<T>::dot(Quat<T> q1) const$/;"	f	class:cv::Quat
+exp	quaternion.cpp	/^Quat<T> Quat<T>::exp() const$/;"	f	class:cv::Quat
+exp	quaternion.cpp	/^Quat<T> exp(const Quat<T> &q)$/;"	f	namespace:cv
 exp	quaternion_new.hpp	/^		Quat<T> exp() const$/;"	f	class:cv::Quat
 features	build/CMakeFiles/feature_tests.c	/^  const char features[] = {"\\n"$/;"	v
 features	build/CMakeFiles/feature_tests.cxx	/^  const char features[] = {"\\n"$/;"	v
-getAngle	quaternion.cpp	/^inline T Quat<T>::getAngle() const$/;"	f	class:Quat
+getAngle	quaternion.cpp	/^inline T Quat<T>::getAngle(bool assumeUnit) const$/;"	f	class:cv::Quat
 getAngle	quaternion_new.hpp	/^		T getAngle() const $/;"	f	class:cv::Quat
-getAxis	quaternion.cpp	/^inline cv::Vec<T, 3> Quat<T>::getAxis() const$/;"	f	class:Quat
+getAxis	quaternion.cpp	/^inline Vec<T, 3> Quat<T>::getAxis(bool assumeUnit) const$/;"	f	class:cv::Quat
 getAxis	quaternion_new.hpp	/^		cv::Vec<T, 3> getAxis() const $/;"	f	class:cv::Quat
 get_string	build/temp.cpp	/^std::string get_string(int i){$/;"	f
 info_arch	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";$/;"	v
@@ -426,11 +446,13 @@ info_version	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^char const
 info_version	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const info_version[] = {$/;"	v
 info_version_internal	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^char const info_version_internal[] = {$/;"	v
 info_version_internal	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const info_version_internal[] = {$/;"	v
-interPoint	quaternion.cpp	/^Quat<T> Quat<T>::interPoint(Quat<T> &q0, Quat<T> &q1,$/;"	f	class:Quat
-inv	quaternion.cpp	/^inline Quat<T> Quat<T>::inv() const$/;"	f	class:Quat
-isNormal	quaternion.cpp	/^inline bool Quat<T>::isNormal() const$/;"	f	class:Quat
-lerp	quaternion.cpp	/^Quat<T> Quat<T>::lerp(const Quat<T> &q0, const Quat<T> &q1, const T t)$/;"	f	class:Quat
-log	quaternion.cpp	/^Quat<T> log(const Quat<T> &q)$/;"	f
+interPoint	quaternion.cpp	/^Quat<T> Quat<T>::interPoint(Quat<T> &q0, Quat<T> &q1,$/;"	f	class:cv::Quat
+inv	quaternion.cpp	/^inline Quat<T> Quat<T>::inv(bool assumeUnit) const$/;"	f	class:cv::Quat
+inv	quaternion.cpp	/^inline Quat<T> inv(const Quat<T> &q)$/;"	f	namespace:cv
+isNormal	quaternion.cpp	/^inline bool Quat<T>::isNormal() const$/;"	f	class:cv::Quat
+lerp	quaternion.cpp	/^Quat<T> Quat<T>::lerp(const Quat<T> &q0, const Quat<T> &q1, const T t)$/;"	f	class:cv::Quat
+log	quaternion.cpp	/^Quat<T> Quat<T>::log(bool assumeUnit) const$/;"	f	class:cv::Quat
+log	quaternion.cpp	/^Quat<T> log(const Quat<T> &q, bool assumeUnit)$/;"	f	namespace:cv
 log	quaternion_new.hpp	/^		Quat<T> log() const$/;"	f	class:cv::Quat
 main	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^int main(argc, argv) int argc; char *argv[];$/;"	f
 main	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^void main() {}$/;"	f
@@ -438,51 +460,67 @@ main	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^int main(int
 main	build/CMakeFiles/feature_tests.c	/^int main(int argc, char** argv) { (void)argv; return features[argc]; }$/;"	f
 main	build/CMakeFiles/feature_tests.cxx	/^int main(int argc, char** argv) { (void)argv; return features[argc]; }$/;"	f
 main	build/temp.cpp	/^int main(){$/;"	f
-main	quaternion.cpp	/^int main(){$/;"	f
-nlerp	quaternion.cpp	/^inline Quat<T> Quat<T>::nlerp(const Quat<T> &q0, const Quat<T> &q1, const T t)$/;"	f	class:Quat
-norm	quaternion.cpp	/^inline T Quat<T>::norm() const$/;"	f	class:Quat
-normalize	quaternion.cpp	/^inline Quat<T> Quat<T>::normalize() const$/;"	f	class:Quat
-operator *	quaternion.cpp	/^Quat<T> operator*(const Quat<T> &q1, const T a)$/;"	f
-operator *	quaternion.cpp	/^Quat<T> operator*(const T a, const Quat<T> &q1)$/;"	f
-operator *	quaternion.cpp	/^inline Quat<T> Quat<T>::operator*(const Quat<T> &q1) const$/;"	f	class:Quat
-operator *=	quaternion.cpp	/^Quat<T>& Quat<T>::operator*=(const T &q1)$/;"	f	class:Quat
-operator *=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator*=(const Quat<T> &q1)$/;"	f	class:Quat
-operator +	quaternion.cpp	/^inline Quat<T> Quat<T>::operator+(const Quat<T> &q1) const$/;"	f	class:Quat
-operator +=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator+=(const Quat<T> &q1)$/;"	f	class:Quat
-operator -	quaternion.cpp	/^inline Quat<T> Quat<T>::operator-() const$/;"	f	class:Quat
-operator -	quaternion.cpp	/^inline Quat<T> Quat<T>::operator-(const Quat<T> &q1) const$/;"	f	class:Quat
-operator -=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator-=(const Quat<T> &q1)$/;"	f	class:Quat
-operator /	quaternion.cpp	/^inline Quat<T> Quat<T>::operator\/(const Quat<T> &q) const$/;"	f	class:Quat
-operator /	quaternion.cpp	/^inline Quat<T> Quat<T>::operator\/(const T &a) const$/;"	f	class:Quat
-operator /=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator\/=(const T &a)$/;"	f	class:Quat
-operator <<	quaternion.cpp	/^std::ostream & std::operator<<(std::ostream &os, const Quat<T> &q)$/;"	f	class:std
-operator ==	quaternion.cpp	/^inline bool Quat<T>::operator==(const Quat<T> &q) const$/;"	f	class:Quat
-operator []	quaternion.cpp	/^inline T& Quat<T>::operator[](std::size_t n)$/;"	f	class:Quat
-operator []	quaternion.cpp	/^inline const T& Quat<T>::operator[](std::size_t n) const$/;"	f	class:Quat
-power	quaternion.cpp	/^inline Quat<T> power(Quat<T> &p, Quat<T> &q)$/;"	f
-power	quaternion.cpp	/^inline Quat<T> power(Quat<T> &q1, T x)$/;"	f
+main	test.cpp	/^int main(int argc, char **argv) {  $/;"	f
+nlerp	quaternion.cpp	/^inline Quat<T> Quat<T>::nlerp(Quat<T> &q0, Quat<T> &q1, const T t, bool assumeUnit)$/;"	f	class:cv::Quat
+norm	quaternion.cpp	/^inline T Quat<T>::norm() const$/;"	f	class:cv::Quat
+normalize	quaternion.cpp	/^inline Quat<T> Quat<T>::normalize() const$/;"	f	class:cv::Quat
+opencv_test	test.cpp	/^namespace opencv_test{ namespace {$/;"	n	file:
+operator *	quaternion.cpp	/^Quat<T> operator*(const Quat<T> &q1, const T a)$/;"	f	namespace:cv
+operator *	quaternion.cpp	/^Quat<T> operator*(const T a, const Quat<T> &q1)$/;"	f	namespace:cv
+operator *	quaternion.cpp	/^inline Quat<T> Quat<T>::operator*(const Quat<T> &q1) const$/;"	f	class:cv::Quat
+operator *=	quaternion.cpp	/^Quat<T>& Quat<T>::operator*=(const T &q1)$/;"	f	class:cv::Quat
+operator *=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator*=(const Quat<T> &q1)$/;"	f	class:cv::Quat
+operator +	quaternion.cpp	/^inline Quat<T> Quat<T>::operator+(const Quat<T> &q1) const$/;"	f	class:cv::Quat
+operator +=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator+=(const Quat<T> &q1)$/;"	f	class:cv::Quat
+operator -	quaternion.cpp	/^inline Quat<T> Quat<T>::operator-() const$/;"	f	class:cv::Quat
+operator -	quaternion.cpp	/^inline Quat<T> Quat<T>::operator-(const Quat<T> &q1) const$/;"	f	class:cv::Quat
+operator -=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator-=(const Quat<T> &q1)$/;"	f	class:cv::Quat
+operator /	quaternion.cpp	/^inline Quat<T> Quat<T>::operator\/(const Quat<T> &q) const$/;"	f	class:cv::Quat
+operator /	quaternion.cpp	/^inline Quat<T> Quat<T>::operator\/(const T &a) const$/;"	f	class:cv::Quat
+operator /=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator\/=(const Quat<T> &q1)$/;"	f	class:cv::Quat
+operator /=	quaternion.cpp	/^inline Quat<T>& Quat<T>::operator\/=(const T &a)$/;"	f	class:cv::Quat
+operator <<	quaternion.cpp	/^std::ostream & operator<<(std::ostream &os, const Quat<T> &q)$/;"	f	namespace:cv
+operator ==	quaternion.cpp	/^inline bool Quat<T>::operator==(const Quat<T> &q) const$/;"	f	class:cv::Quat
+operator []	quaternion.cpp	/^inline T& Quat<T>::operator[](std::size_t n)$/;"	f	class:cv::Quat
+operator []	quaternion.cpp	/^inline const T& Quat<T>::operator[](std::size_t n) const$/;"	f	class:cv::Quat
+power	quaternion.cpp	/^inline Quat<T> Quat<T>::power(T x, bool assumeUnit) const$/;"	f	class:cv::Quat
+power	quaternion.cpp	/^inline Quat<T> Quat<T>::power(const Quat<T> &q) const$/;"	f	class:cv::Quat
+power	quaternion.cpp	/^inline Quat<T> power(const Quat<T> &p, const Quat<T> &q)$/;"	f	namespace:cv
+power	quaternion.cpp	/^inline Quat<T> power(const Quat<T> &q1, T x, bool assumeUnit)$/;"	f	namespace:cv
 power	quaternion_new.hpp	/^		Quat<T> power(T x) const$/;"	f	class:cv::Quat
 print	build/temp.cpp	/^void print(std::string& str){$/;"	f
+q1	test.cpp	/^    Quat<double> q1;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+q1Inv	test.cpp	/^    Quat<double> q1Inv;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+q1Unit	test.cpp	/^    Quat<double> q1Unit;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+q2	test.cpp	/^    Quat<double> q2;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+qNorm2	test.cpp	/^    double qNorm2 = 2.5;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
 qnxnto	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
 qnxnto	build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
-sin	quaternion.cpp	/^inline Quat<T> sin(Quat<T> &q)$/;"	f
-sinh	quaternion.cpp	/^inline Quat<T> sinh(Quat<T> &q)$/;"	f
-slerp	quaternion.cpp	/^Quat<T> Quat<T>::slerp(Quat<T> &q0, Quat<T> &q1, const T t, bool assumeUnit)$/;"	f	class:Quat
-spline	quaternion.cpp	/^Quat<T> Quat<T>::spline(Quat<T> &q0, Quat<T> &q1, Quat<T> &q2, Quat<T> &q3, const T t, bool assumeUnit)$/;"	f	class:Quat
-sqrt	quaternion.cpp	/^inline Quat<T> sqrt(Quat<T> &q1)$/;"	f
-squad	quaternion.cpp	/^inline Quat<T> Quat<T>::squad(Quat<T> &q0, Quat<T> &q1,$/;"	f	class:Quat
-tan	quaternion.cpp	/^inline Quat<T> tan(Quat<T> &q)$/;"	f
-tanh	quaternion.cpp	/^inline Quat<T> tanh(Quat<T> &q)$/;"	f
-toRotMat3x3	quaternion.cpp	/^cv::Mat Quat<T>::toRotMat3x3() const$/;"	f	class:Quat
+scalar	test.cpp	/^    double scalar = 2.5;$/;"	m	class:opencv_test::__anon1::QuatTest	file:
+sin	quaternion.cpp	/^inline Quat<T> Quat<T>::sin() const$/;"	f	class:cv::Quat
+sin	quaternion.cpp	/^inline Quat<T> sin(const Quat<T> &q)$/;"	f	namespace:cv
+sinh	quaternion.cpp	/^inline Quat<T> Quat<T>::sinh() const$/;"	f	class:cv::Quat
+sinh	quaternion.cpp	/^inline Quat<T> sinh(const Quat<T> &q)$/;"	f	namespace:cv
+slerp	quaternion.cpp	/^Quat<T> Quat<T>::slerp(Quat<T> &q0, Quat<T> &q1, const T t, bool assumeUnit)$/;"	f	class:cv::Quat
+spline	quaternion.cpp	/^Quat<T> Quat<T>::spline(Quat<T> &q0, Quat<T> &q1, Quat<T> &q2, Quat<T> &q3, const T t, bool assumeUnit)$/;"	f	class:cv::Quat
+sqrt	quaternion.cpp	/^inline CV_EXPORTS_W Quat<T> sqrt(Quat<T> &q)$/;"	f	namespace:cv
+sqrt	quaternion.cpp	/^inline Quat<T> Quat<T>::sqrt() const$/;"	f	class:cv::Quat
+squad	quaternion.cpp	/^inline Quat<T> Quat<T>::squad(Quat<T> &q0, Quat<T> &q1,$/;"	f	class:cv::Quat
+tan	quaternion.cpp	/^inline Quat<T> Quat<T>::tan() const$/;"	f	class:cv::Quat
+tan	quaternion.cpp	/^inline Quat<T> tan(const Quat<T> &q)$/;"	f	namespace:cv
+tanh	quaternion.cpp	/^inline Quat<T> Quat<T>::tanh() const$/;"	f	class:cv::Quat
+tanh	quaternion.cpp	/^inline Quat<T> tanh(const Quat<T> &q)$/;"	f	namespace:cv
+toRodrigues	quaternion.cpp	/^Vec<T, 3> Quat<T>::toRodrigues() const$/;"	f	class:cv::Quat
+toRotMat3x3	quaternion.cpp	/^cv::Mat Quat<T>::toRotMat3x3(bool assumeUnit) const$/;"	f	class:cv::Quat
 toRotMat3x3	quaternion_new.hpp	/^		cv::Mat toRotMat3x3() const$/;"	f	class:cv::Quat
-toRotMat4x4	quaternion.cpp	/^cv::Mat Quat<T>::toRotMat4x4() const$/;"	f	class:Quat
-toVec	quaternion.cpp	/^cv::Vec<T, 4> Quat<T>::toVec() const$/;"	f	class:Quat
+toRotMat4x4	quaternion.cpp	/^cv::Mat Quat<T>::toRotMat4x4() const$/;"	f	class:cv::Quat
+toVec	quaternion.cpp	/^cv::Vec<T, 4> Quat<T>::toVec() const$/;"	f	class:cv::Quat
 volatile	build/CMakeFiles/3.10.2/CompilerIdC/CMakeCCompilerId.c	11;"	d	file:
-w	quaternion.hpp	/^		_Tp w, x, y, z;$/;"	m	class:Quat
+w	quaternion.hpp	/^        _Tp w, x, y, z;$/;"	m	class:cv::Quat
 w	quaternion_new.hpp	/^		T w, x, y, z;$/;"	m	class:cv::Quat
-x	quaternion.hpp	/^		_Tp w, x, y, z;$/;"	m	class:Quat
+x	quaternion.hpp	/^        _Tp w, x, y, z;$/;"	m	class:cv::Quat
 x	quaternion_new.hpp	/^		T w, x, y, z;$/;"	m	class:cv::Quat
-y	quaternion.hpp	/^		_Tp w, x, y, z;$/;"	m	class:Quat
+y	quaternion.hpp	/^        _Tp w, x, y, z;$/;"	m	class:cv::Quat
 y	quaternion_new.hpp	/^		T w, x, y, z;$/;"	m	class:cv::Quat
-z	quaternion.hpp	/^		_Tp w, x, y, z;$/;"	m	class:Quat
+z	quaternion.hpp	/^        _Tp w, x, y, z;$/;"	m	class:cv::Quat
 z	quaternion_new.hpp	/^		T w, x, y, z;$/;"	m	class:cv::Quat
