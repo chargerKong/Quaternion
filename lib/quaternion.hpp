@@ -185,7 +185,7 @@ namespace cv
 
         Quat<_Tp> tan() const;
 
-        /*
+        
         template <typename T>
         friend Quat<T> asin(const Quat<T> &q1);
 
@@ -219,7 +219,7 @@ namespace cv
         friend Quat<T> atanh(const Quat<T> &q1);
 
         Quat<_Tp> atanh() const;
-        */
+
         /**
          * @brirf to dermined whether a quaternion is normalized or not
          */
@@ -411,10 +411,10 @@ namespace cv
     
     template <typename T>
     Quat<T> tan(const Quat<T> &q1);
-    /*
+    
     template <typename T>
     Quat<T> asinh(const Quat<T> &q1);
-
+/*
     template <typename T>
     Quat<T> acosh(const Quat<T> &q1);
 
@@ -446,7 +446,7 @@ namespace cv
     Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q);
 
     template <typename S>
-    Quat<S> sqrt(Quat<S> &q, bool assumeUnit=false);
+    Quat<S> sqrt(const Quat<S> &q, bool assumeUnit=false);
 
     template <typename S>
     Quat<S> operator*(const S, const Quat<S>&);

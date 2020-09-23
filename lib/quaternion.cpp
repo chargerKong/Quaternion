@@ -323,7 +323,7 @@ Quat<T> Quat<T>::log(bool assumeUnit) const
     T vNorm = std::sqrt(v.dot(v));
     if (assumeUnit)
     {
-        T k = vNorm < EPS ? 1 : std::acos(w);
+        T k = vNorm < EPS ? 1 : std::acos(w) / vNorm;
         return Quat<T>(0, v[0] * k, v[1] * k, v[2] * k);
     }   
     T qNorm = norm();
@@ -331,7 +331,7 @@ Quat<T> Quat<T>::log(bool assumeUnit) const
     {
         throw "This quaternion can't be applied to log";
     }
-    T k = vNorm < EPS ? 1 : std::acos(w / qNorm);
+    T k = vNorm < EPS ? 1 : std::acos(w / qNorm) / vNorm;
     return Quat<T>(std::log(qNorm), v[0] * k, v[1] * k, v[2] *k);
 }
 
@@ -362,7 +362,7 @@ inline Quat<T> Quat<T>::power(T alpha, bool assumeUnit) const
 
 
 template <typename T>
-inline Quat<T> sqrt(Quat<T> &q, bool assumeUnit)
+inline Quat<T> sqrt(const Quat<T> &q, bool assumeUnit)
 {
     return q.sqrt(assumeUnit);
 }
@@ -384,7 +384,6 @@ inline Quat<T> power(const Quat<T> &p, const Quat<T> &q, bool assumeUnit)
 template <typename T>
 inline Quat<T> Quat<T>::power(const Quat<T> &q, bool assumeUnit) const
 {
-    //Quat<T> ans = *this * q.log();
     return cv::exp(q * log(assumeUnit));
 }
 
@@ -529,7 +528,7 @@ inline Quat<T> Quat<T>::tan() const
 {
     return sin() * cos().inv();
 }
-/*
+
 template <typename T>
 inline Quat<T> asinh(const Quat<T> &q)
 {
@@ -539,10 +538,7 @@ inline Quat<T> asinh(const Quat<T> &q)
 template <typename T>
 inline Quat<T> Quat<T>::asinh() const
 {
-    Quat<T> c1 = *this * *this + Quat<T>(1,0,0,0);
-    Quat<T> c2 = c1.power(0.5) + *this;
-    return c2.log();
-    // return log(*this + power(*this * *this + Quat<T>(1,0,0,0), 0.5));
+    return cv::log(*this + cv::power(*this * *this + Quat<T>(1, 0, 0, 0), 0.5));
 }
 
 template <typename T>
@@ -554,10 +550,7 @@ inline Quat<T> acosh(const Quat<T> &q)
 template <typename T>
 inline Quat<T> Quat<T>::acosh() const
 {
-    Quat<T> c1 = *this * *this - Quat<T>(1,0,0,0);
-    Quat<T> c2 = c1.power(0.5) + *this;
-    return c2.log();
-    //return cv::log(*this + cv::power(*this * *this - Quat<T>(1,0,0,0), 0.5));
+    return cv::log(*this + cv::power(*this * *this - Quat<T>(1,0,0,0), 0.5));
 }
 
 template <typename T>
@@ -572,8 +565,7 @@ inline Quat<T> Quat<T>::atanh() const
     Quat<T> ident(1, 0, 0, 0);
     Quat<T> c1 = (ident + *this).log();
     Quat<T> c2 = (ident - *this).log();
-    return 1 / 2 * (c1 - c2);
-    //return 1/2 * (cv::log(ident + *this) - cv::log(ident - *this));
+    return 0.5 * (c1 - c2);
 }
 
 template <typename T>
@@ -587,7 +579,8 @@ inline Quat<T> Quat<T>::asin() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    return -v / vNorm * (*this * v / vNorm).asinh();
+    T k = vNorm < EPS ? 1 : vNorm;
+    return -v / k * (*this * v / k).asinh();
 }
 
 template <typename T>
@@ -601,8 +594,8 @@ inline Quat<T> Quat<T>::acos() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    // have some problem
-    return -v / vNorm * acosh();
+    T k = vNorm < EPS ? 1 : vNorm;
+    return -v / k * acosh();
 }
 
 template <typename T>
@@ -616,9 +609,11 @@ inline Quat<T> Quat<T>::atan() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    return -v / vNorm * (*this * v / vNorm).atanh();
+    T k = vNorm < EPS ? 1 : vNorm;
+    std::cout << *this * v/ k << std::endl;
+    return -v / k * (*this * v / k).atanh();
 }
-*/
+
 template <typename T>
 inline T Quat<T>::getAngle(bool assumeUnit) const
 {
@@ -648,11 +643,25 @@ template <typename T>
 cv::Mat Quat<T>::toRotMat4x4() const
 {
     T dotVal = dot(*this);
+    Matx<T, 4, 4> right{
+        w, -x, -y, -z,
+        x,  w,  z, -y,
+        y, -z,  w,  x,
+        z,  y, -x,  w,
+    };
+    Matx<T, 4, 4> left{
+        w, -x, -y, -z,
+        x,  w, -z,  y,
+        y,  z,  w, -x,
+        z, -y,  x,  w,
+    };
+    /*
     cv::Matx<T, 4, 4> R{
          2* w * w - dotVal, -2 * w * x        , -2 * w * y         ,  - 2 * w * z,
          -2 * w * x       , dotVal - 2 * x * x, - 2 * x * y        , -2 * x * z,
          2 * w * y        , -2 * x * y        , dotVal - 2 * y * y , -2 * z * y,
-         2 * w * z        , -2 * x * z        , -2 * y * z         , dotVal - 2 * z * z};
+         2 * w * z        , -2 * x * z        , -2 * y * z         , dotVal - 2 * z * z};*/
+    Matx<T, 3, 3> R = left * right.inv()；
     return cv::Mat(R.t()).t();
 }
 

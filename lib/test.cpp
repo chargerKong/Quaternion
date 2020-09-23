@@ -28,6 +28,8 @@ protected:
     Quat<double> q1;
     Quat<double> q2;
     Quat<double> q1Unit;
+
+    Quatd qNull{0, 0, 0, 0};
     Quatd qIdentity{1, 0, 0, 0};
 };
 
@@ -56,7 +58,6 @@ TEST_F(QuatTest, constructor){
 
 TEST_F(QuatTest, basicfuns){
     Quat<double> q1Conj{1, -2, -3, -4};
-    Quat<double> qNull{0, 0, 0, 0};
     EXPECT_EQ(q3Norm2.normalize(), q3);
     EXPECT_EQ(q1.norm(), sqrt(30));
     EXPECT_EQ(q1.normalize(), q1Unit);
@@ -74,6 +75,12 @@ TEST_F(QuatTest, basicfuns){
                                    1.0 / 3 , 14.0 / 15, -2.0 / 15);
     Mat q1RotMat = q1.toRotMat3x3();
     std::cout << q1RotMat << R << "\n";
+
+    Mat q3RotMat3 = q3.toRotMat3x3();
+    Mat q3RotMat4 = q3.toRotMat4x4();
+    std::cout << q1.normalize().toRotMat3x3() << std::endl;
+    std::cout << q1.normalize().toRotMat4x4() << std::endl;
+
     //ASSERT_MAT_NEAR(q1RotMat, R, 1e-6);
     /*
     Mat q1R4 = q1Unit.toRotMat4x4();
@@ -109,6 +116,7 @@ TEST_F(QuatTest, basicfuns){
     EXPECT_EQ(exp(q1 * log(q3)), power(q3, q1, true));
     EXPECT_EQ(crossProduct(q1, q3), (q1 * q3 - q3 * q1) / 2);
     EXPECT_EQ(sinh(qNull), qNull);
+    EXPECT_EQ(sinh(q1), (exp(q1) - exp(-q1)) / 2);
     EXPECT_EQ(sinh(qIdentity), Quatd(sinh(1), 0, 0, 0));
     EXPECT_EQ(sinh(q1), Quatd(0.73233760604, -0.44820744998, -0.67231117497, -0.8964148999610843));
     EXPECT_EQ(cosh(qNull), qIdentity);
@@ -119,8 +127,21 @@ TEST_F(QuatTest, basicfuns){
     EXPECT_EQ(cos(qNull), qIdentity);
     EXPECT_EQ(cos(q1), Quatd(58.9336461679, -34.0861836904, -51.12927553569, -68.17236738093));
     EXPECT_EQ(tan(q1), sin(q1)/cos(q1));
-    
-
+    EXPECT_EQ(sinh(asinh(q1)), q1);
+    Quatd c1 = asinh(sinh(q1));
+    EXPECT_EQ(sinh(c1), sinh(q1));
+    EXPECT_EQ(cosh(acosh(q1)), q1);
+    c1 = acosh(cosh(q1));
+    EXPECT_EQ(cosh(c1), cosh(q1));
+    EXPECT_EQ(tanh(atanh(q1)), q1);
+    c1 = atanh(tanh(q1));
+    EXPECT_EQ(tanh(q1), tanh(c1));
+    EXPECT_EQ(asin(sin(q1)), q1);
+    EXPECT_EQ(sin(asin(q1)), q1);
+    EXPECT_EQ(acos(cos(q1)), q1);
+    EXPECT_EQ(cos(acos(q1)), q1);
+    EXPECT_EQ(atan(tan(q3)), q3);
+    EXPECT_EQ(tan(atan(q1)), q1); // atan may not be calculate
 }
 
 TEST_F(QuatTest, opeartor){
@@ -153,7 +174,9 @@ TEST_F(QuatTest, opeartor){
     q1 /= scalar;
     EXPECT_EQ(q1, qOrigin);
     EXPECT_NO_THROW(q1[0]);
+    EXPECT_NO_THROW(q1.at(0));
     EXPECT_ANY_THROW(q1[4]);
+    EXPECT_ANY_THROW(q1.at(4));
 }
  
 TEST_F(QuatTest, quatAttrs){
@@ -203,12 +226,14 @@ TEST_F(QuatTest, interpolation){
 	Quat<double> tr2(angle / 2, axis);
 	Quat<double> tr3(angle, axis);
 	Quat<double> tr4(angle, Vec3d{-1/sqrt(2),0,1/(sqrt(2))});
+    EXPECT_ANY_THROW(Quatd::spline(qNull, tr1, tr2, tr3, 0));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 0), tr2);
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 1), tr3);
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 0.6, true), Quatd::spline(tr1, tr2, tr3, tr4, 0.6));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
-    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.350391488732, 0.540748186813, 0.540748186813, 0.540748186813));
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
+    Quatd a = Quatd::spline(tr1, tr2, tr3, tr3, 0.5);
 
  /*   
     axis = {0,0,1};
