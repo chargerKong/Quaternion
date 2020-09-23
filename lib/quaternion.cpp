@@ -21,13 +21,13 @@
 // See the License for the specific language governing permissions and 
 // limitations under the License. 
 //
-// Author: Longbu Wang <riskiest@gmail.com>
-//         Liangqian Kong <chargerKong@126.com>
+// Author: Liangqian Kong <chargerKong@126.com>
+//         Longbu Wang <riskiest@gmail.com>
+   
 #include "quaternion.hpp"
-#include <iomanip>
 #include <math.h>
-#define EPS 0.0001
 #include <vector>
+
 namespace cv{
 template <typename T>
 Quat<T>::Quat(const Vec<T, 4> &coeff):w(coeff[0]), x(coeff[1]), y(coeff[2]), z(coeff[3]){}
@@ -39,7 +39,7 @@ template <typename T>
 Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis, const T qNorm)
 { 	
     T vNorm = std::sqrt(axis.dot(axis));
-    if (vNorm < EPS || qNorm < EPS)
+    if (vNorm < CV_QUAT_EPS || qNorm < CV_QUAT_EPS)
     {
         throw "this quaternion does not represent a rotation";
     }
@@ -52,6 +52,10 @@ Quat<T>::Quat(const T angle, const cv::Vec<T, 3> &axis, const T qNorm)
 template <typename T>
 Quat<T>::Quat(const cv::Mat &R)
 {
+    if (R.rows != 3 || R.cols != 3)
+    {
+        throw "The shape of matrix to be converted to quaternion must be (3, 3)";
+    }
     T S;
     T trace = R.at<T>(0, 0) + R.at<T>(1, 1) + R.at<T>(2, 2);
     if (trace > 0)
@@ -93,7 +97,7 @@ template <typename T>
 Quat<T>::Quat(const Vec<T, 3> &rodrigues)
 {
     T tanVal = std::sqrt(rodrigues.dot(rodrigues));
-    if (tanVal < EPS)
+    if (tanVal < CV_QUAT_EPS)
     {
         throw "This rodrigues vetor can't be transformed to a quaternion";
     }
@@ -115,7 +119,7 @@ inline Quat<T> Quat<T>::operator-() const
 template <typename T>
 inline bool Quat<T>::operator==(const Quat<T> &q) const
 {
-    return (abs(w - q.w) < EPS && abs(x - q.x) < EPS && abs(y - q.y) < EPS && abs(z - q.z) < EPS);
+    return (abs(w - q.w) < CV_QUAT_EPS && abs(x - q.x) < CV_QUAT_EPS && abs(y - q.y) < CV_QUAT_EPS && abs(z - q.z) < CV_QUAT_EPS);
 }
 
 template <typename T>
@@ -306,7 +310,7 @@ Quat<T> Quat<T>::exp() const
 {
     cv::Vec<T, 3> v{x, y, z};
     T normV = std::sqrt(v.dot(v));
-    T k = normV < EPS ? 1 : std::sin(normV) / normV;
+    T k = normV < CV_QUAT_EPS ? 1 : std::sin(normV) / normV;
     return std::exp(w) * Quat<T>(std::cos(normV), v[0] * k, v[1] * k, v[2] * k);
 }
 
@@ -323,15 +327,15 @@ Quat<T> Quat<T>::log(bool assumeUnit) const
     T vNorm = std::sqrt(v.dot(v));
     if (assumeUnit)
     {
-        T k = vNorm < EPS ? 1 : std::acos(w) / vNorm;
+        T k = vNorm < CV_QUAT_EPS ? 1 : std::acos(w) / vNorm;
         return Quat<T>(0, v[0] * k, v[1] * k, v[2] * k);
     }   
     T qNorm = norm();
-    if (qNorm < EPS)
+    if (qNorm < CV_QUAT_EPS)
     {
         throw "This quaternion can't be applied to log";
     }
-    T k = vNorm < EPS ? 1 : std::acos(w / qNorm) / vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : std::acos(w / qNorm) / vNorm;
     return Quat<T>(std::log(qNorm), v[0] * k, v[1] * k, v[2] *k);
 }
 
@@ -344,7 +348,7 @@ inline Quat<T> power(const Quat<T> &q1, T alpha, bool assumeUnit)
 template < typename T> 
 inline Quat<T> Quat<T>::power(T alpha, bool assumeUnit) const
 {
-    if (x * x + y * y + z * z > EPS) 
+    if (x * x + y * y + z * z > CV_QUAT_EPS) 
     {
         T angle = getAngle(assumeUnit);
         cv::Vec<T, 3> axis = getAxis(assumeUnit);
@@ -411,7 +415,7 @@ template <typename T>
 inline Quat<T> Quat<T>::normalize() const
 {
     T normVal = norm();
-    if (normVal < EPS)
+    if (normVal < CV_QUAT_EPS)
     {
         throw "This can't be normalized.";
     }
@@ -433,7 +437,7 @@ inline Quat<T> Quat<T>::inv(bool assumeUnit) const
         return conjugate();
     }
     T norm2 = dot(*this);
-    if (norm2 < EPS)
+    if (norm2 < CV_QUAT_EPS)
     {
         throw "This quaternion have not inverse";
     }
@@ -452,7 +456,7 @@ inline Quat<T> Quat<T>::sinh() const
 {
     cv::Vec<T, 3> v{x, y ,z};
     T vNorm = std::sqrt(v.dot(v));
-    T k = vNorm < EPS ? 1 : std::cosh(w) * std::sin(vNorm) / vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : std::cosh(w) * std::sin(vNorm) / vNorm;
     return Quat<T>(std::sinh(w) * std::cos(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
 
@@ -469,7 +473,7 @@ inline Quat<T> Quat<T>::cosh() const
 {
     cv::Vec<T, 3> v{x, y ,z};
     T vNorm = std::sqrt(v.dot(v));
-    T k = vNorm < EPS ? 1 : std::sinh(w) * std::sin(vNorm) / vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : std::sinh(w) * std::sin(vNorm) / vNorm;
     return Quat<T>(std::cosh(w) * std::cos(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
 
@@ -498,7 +502,7 @@ inline Quat<T> Quat<T>::sin() const
 {
     cv::Vec<T, 3> v{x, y ,z};
     T vNorm = std::sqrt(v.dot(v));
-    T k = vNorm < EPS ? 1 : std::cos(w) * std::sinh(vNorm) / vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : std::cos(w) * std::sinh(vNorm) / vNorm;
     return Quat<T>(std::sin(w) * std::cosh(vNorm), v[0] * k, v[1] * k, v[2] * k);
 }
 
@@ -513,7 +517,7 @@ inline Quat<T> Quat<T>::cos() const
 {
     cv::Vec<T, 3> v{x, y ,z};
     T vNorm = std::sqrt(v.dot(v));
-    T k = vNorm < EPS ? 1 : std::sin(w) * std::sinh(vNorm) / vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : std::sin(w) * std::sinh(vNorm) / vNorm;
     return Quat<T>(std::cos(w) * std::cosh(vNorm), -v[0] * k, -v[1] * k, -v[2] * k);
 }
 
@@ -579,7 +583,7 @@ inline Quat<T> Quat<T>::asin() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    T k = vNorm < EPS ? 1 : vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : vNorm;
     return -v / k * (*this * v / k).asinh();
 }
 
@@ -594,7 +598,7 @@ inline Quat<T> Quat<T>::acos() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    T k = vNorm < EPS ? 1 : vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : vNorm;
     return -v / k * acosh();
 }
 
@@ -609,7 +613,7 @@ inline Quat<T> Quat<T>::atan() const
 {
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
-    T k = vNorm < EPS ? 1 : vNorm;
+    T k = vNorm < CV_QUAT_EPS ? 1 : vNorm;
     std::cout << *this * v/ k << std::endl;
     return -v / k * (*this * v / k).atanh();
 }
@@ -621,7 +625,7 @@ inline T Quat<T>::getAngle(bool assumeUnit) const
     {
         return 2 * std::acos(w);
     }
-    if (x * x + y * y + z * z < EPS || norm() < EPS )
+    if (x * x + y * y + z * z < CV_QUAT_EPS || norm() < CV_QUAT_EPS )
     {
         throw "this quaternion does not represent a rotation";
     }
@@ -640,29 +644,23 @@ inline Vec<T, 3> Quat<T>::getAxis(bool assumeUnit) const
 }
 
 template <typename T>
-cv::Mat Quat<T>::toRotMat4x4() const
+cv::Mat Quat<T>::toRotMat4x4(bool assumeUnit) const
 {
-    T dotVal = dot(*this);
-    Matx<T, 4, 4> right{
-        w, -x, -y, -z,
-        x,  w,  z, -y,
-        y, -z,  w,  x,
-        z,  y, -x,  w,
-    };
-    Matx<T, 4, 4> left{
-        w, -x, -y, -z,
-        x,  w, -z,  y,
-        y,  z,  w, -x,
-        z, -y,  x,  w,
-    };
-    /*
+    T a = w, b = x, c = y, d = z;
+    if (!assumeUnit)
+    {
+        Quat<T> qTemp = normalize();
+        a = qTemp.w;
+        b = qTemp.x;
+        c = qTemp.y;
+        d = qTemp.z;
+    }
     cv::Matx<T, 4, 4> R{
-         2* w * w - dotVal, -2 * w * x        , -2 * w * y         ,  - 2 * w * z,
-         -2 * w * x       , dotVal - 2 * x * x, - 2 * x * y        , -2 * x * z,
-         2 * w * y        , -2 * x * y        , dotVal - 2 * y * y , -2 * z * y,
-         2 * w * z        , -2 * x * z        , -2 * y * z         , dotVal - 2 * z * z};*/
-    Matx<T, 3, 3> R = left * right.inv()；
-    return cv::Mat(R.t()).t();
+          1,                      0,                       0,                   0,
+          0,1 - 2 * (c * c + d * d), 2 * (b * c + a * d)    , 2 * (b * d - a * c),
+          0,2 * (b * c - a * d)    , 1 - 2 * (b * b + d * d), 2 * (c * d + a * b),
+          0.2 * (b * d + a * c)    , 2 * (c * d - a * b)    , 1 - 2 * (b * b + c * c)};
+    return cv::Mat(R).t();
 }
 
 template <typename T>
@@ -687,7 +685,7 @@ cv::Mat Quat<T>::toRotMat3x3(bool assumeUnit) const
 template <typename T>
 Vec<T, 3> Quat<T>::toRodrigues() const
 {
-    if (abs(w) < EPS)
+    if (abs(w) < CV_QUAT_EPS)
     {
         throw "the rotate vector is indeterminte";
     }
@@ -754,24 +752,24 @@ inline Quat<T> Quat<T>::nlerp(const Quat<T> &q0, const Quat<T> &q1, const T t, b
     return ((1 - t) * v0 + t * v1).normalize();
 }
 
-/*
+
 template <typename T>
-inline bool Quat<T>::isNormal() const
+inline bool Quat<T>::isNormal(T eps) const
 {
 
     double normVar = norm();
-    if ((normVar > 1 - EPS) && (normVar < 1 + EPS))
+    if ((normVar > 1 - eps) && (normVar < 1 + eps))
         return true;
     return false;
 }
 
 template <typename T>
-inline void Quat<T>::assertNormal() const
+inline void Quat<T>::assertNormal(T eps) const
 {
-    if (!isNormal())
+    if (!isNormal(eps))
         throw ("Quaternions should be normalized");
 }
-*/
+
 
 template <typename T>
 inline Quat<T> Quat<T>::squad(const Quat<T> &q0, const Quat<T> &q1,

@@ -21,8 +21,8 @@
 // See the License for the specific language governing permissions and 
 // limitations under the License. 
 //
-// Author: Longbu Wang <riskiest@gmail.com>
-//         Liangqian Kong <chargerKong@126.com>
+// Author: Liangqian Kong <chargerKong@126.com>
+//         Longbu Wang <riskiest@gmail.com>
 #include <opencv2/core.hpp>
 #include <iostream>
 namespace cv 
@@ -58,7 +58,7 @@ namespace cv
         Quat(_Tp w, _Tp x, _Tp y, _Tp z);
         Quat(const _Tp angle, const cv::Vec<_Tp, 3> &axis, const _Tp qNorm=1);
         explicit Quat(const cv::Mat &R);
-        explicit Quat(const Vec<_Tp, 3> &rodrigues);
+        explicit Quat(const Vec<_Tp, 3> &rodrigurs);
 
         /**
          * @brief a way to get element
@@ -140,7 +140,7 @@ namespace cv
          */
         template <typename T>
         friend Quat<T> inv(const Quat<T> &q1, bool assumeUnit);
-        
+
         Quat<_Tp> inv(bool assumeUnit=false) const;
 
         /**
@@ -184,12 +184,12 @@ namespace cv
 
         template <typename T>
         friend Quat<T> acos(const Quat<T> &q1);
-        
+
         Quat<_Tp> acos() const;
 
         template <typename T>
         friend Quat<T> atan(const Quat<T> &q1);
-        
+
         Quat<_Tp> atan() const;
 
         template <typename T>
@@ -210,12 +210,12 @@ namespace cv
         /**
          * @brirf to dermined whether a quaternion is normalized or not
          */
-        bool isNormal(_Tp esp=CV_QUAT_ESP) const;
+        bool isNormal(_Tp esp=CV_QUAT_EPS) const;
 
         /**
          * @brief to throw an un-normalized error if its not an unit-quaternion
          */
-        void assertNormal() const;
+        void assertNormal(_Tp esp=CV_QUAT_EPS) const;
 
         /**
          * @brief transform the quaternion q to a 3x3 rotate matrix. The quaternion
