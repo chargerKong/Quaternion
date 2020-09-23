@@ -1,5 +1,6 @@
 #include <iostream>
 #include "quaternion.cpp"
+#include <iomanip>
 #include <gtest/gtest.h>
 //#include <opencv2/ts/coda_test.hpp>
 using namespace cv;
@@ -56,15 +57,16 @@ TEST_F(QuatTest, constructor){
 TEST_F(QuatTest, basicfuns){
     Quat<double> q1Conj{1, -2, -3, -4};
     Quat<double> qNull{0, 0, 0, 0};
-
     EXPECT_EQ(q3Norm2.normalize(), q3);
-    EXPECT_ANY_THROW(qNull.normalize());
     EXPECT_EQ(q1.norm(), sqrt(30));
     EXPECT_EQ(q1.normalize(), q1Unit);
+    EXPECT_ANY_THROW(qNull.normalize());
     EXPECT_EQ(q1.conjugate(), q1Conj);
     EXPECT_EQ(q1.inv(), q1Inv);
     EXPECT_EQ(inv(q1), q1Inv);
-    EXPECT_ANY_THROW(qNull.inv());
+    EXPECT_EQ(q3.inv(true) * q3, qIdentity);
+    EXPECT_EQ(q1.inv() * q1, qIdentity);
+    EXPECT_ANY_THROW(inv(qNull));
     EXPECT_NO_THROW(q1.at(0));
     EXPECT_ANY_THROW(q1.at(4));
     Mat R = (Mat_<double>(3, 3) << -2.0 / 3, 2.0 / 15 , 11.0 / 15,
@@ -94,22 +96,41 @@ TEST_F(QuatTest, basicfuns){
     EXPECT_EQ(log(q3), Quatd(0, angle * unitAxis[0] / 2, angle * unitAxis[1] / 2, angle * unitAxis[2] / 2));
     EXPECT_ANY_THROW(log(qNull));
     EXPECT_EQ(log(Quatd(exp(1), 0, 0, 0)), qIdentity);
-    
+
     EXPECT_EQ(exp(qIdentity), Quatd(exp(1), 0, 0, 0));
     EXPECT_EQ(exp(qNull), qIdentity);
     EXPECT_EQ(exp(Quatd(0, angle * unitAxis[0] / 2, angle * unitAxis[1] / 2, angle * unitAxis[2] / 2)), q3);
 
+    EXPECT_EQ(power(q3, 2.0), Quatd(2*angle, axis));
+    EXPECT_EQ(power(Quatd(0.5, 0.5, 0.5, 0.5), 2.0, true), Quatd(-0.5,0.5,0.5,0.5));
+    EXPECT_EQ(power(Quatd(0.5, 0.5, 0.5, 0.5), -2.0), Quatd(-0.5,-0.5,-0.5,-0.5));
+    EXPECT_EQ(sqrt(q1), power(q1, 0.5));
+    EXPECT_EQ(exp(q3 * log(q1)), power(q1, q3));
+    EXPECT_EQ(exp(q1 * log(q3)), power(q3, q1, true));
+    EXPECT_EQ(crossProduct(q1, q3), (q1 * q3 - q3 * q1) / 2);
+    EXPECT_EQ(sinh(qNull), qNull);
+    EXPECT_EQ(sinh(qIdentity), Quatd(sinh(1), 0, 0, 0));
+    EXPECT_EQ(sinh(q1), Quatd(0.73233760604, -0.44820744998, -0.67231117497, -0.8964148999610843));
+    EXPECT_EQ(cosh(qNull), qIdentity);
+    EXPECT_EQ(cosh(q1), Quatd(0.961585117636, -0.34135217456, -0.51202826184, -0.682704349122));
+    EXPECT_EQ(tanh(q1), sinh(q1) * inv(cosh(q1)));
+    EXPECT_EQ(sin(qNull), qNull);
+    EXPECT_EQ(sin(q1), Quatd(91.78371578403, 21.88648685303, 32.829730279543, 43.772973706058));
+    EXPECT_EQ(cos(qNull), qIdentity);
+    EXPECT_EQ(cos(q1), Quatd(58.9336461679, -34.0861836904, -51.12927553569, -68.17236738093));
+    EXPECT_EQ(tan(q1), sin(q1)/cos(q1));
     
+
 }
 
 TEST_F(QuatTest, opeartor){
-    Quat<double> minusQ{-1, -2, -3, -4};
-    Quat<double> qAdd{3.5, 0, 6.5, 8};
-    Quat<double> qMinus{-1.5, 4, -0.5, 0};
-    Quat<double> qMultq{-20, 1, -5, 27};
-    Quat<double> qMults{2.5, 5.0, 7.5, 10.0};
-    Quat<double> qDvss{1.0 / 2.5, 2.0 / 2.5, 3.0 / 2.5, 4.0 / 2.5};
-    Quat<double> qOrigin(q1);
+    Quatd minusQ{-1, -2, -3, -4};
+    Quatd qAdd{3.5, 0, 6.5, 8};
+    Quatd qMinus{-1.5, 4, -0.5, 0};
+    Quatd qMultq{-20, 1, -5, 27};
+    Quatd qMults{2.5, 5.0, 7.5, 10.0};
+    Quatd qDvss{1.0 / 2.5, 2.0 / 2.5, 3.0 / 2.5, 4.0 / 2.5};
+    Quatd qOrigin(q1);
     
     EXPECT_EQ(-q1, minusQ);
     EXPECT_EQ(q1 + q2, qAdd);
@@ -134,17 +155,16 @@ TEST_F(QuatTest, opeartor){
     EXPECT_NO_THROW(q1[0]);
     EXPECT_ANY_THROW(q1[4]);
 }
-
+ 
 TEST_F(QuatTest, quatAttrs){
     double angleQ1 = 2 * acos(1.0 / sqrt(30));
     Vec3d axis{0.3713906763541037, 0.557086014, 0.742781352 };
-    Quat<double> qIdy(1, 0, 0, 0);
     Vec<double, 3> q1axis = q1.getAxis();
     
     EXPECT_EQ(angleQ1, q1.getAngle());
     EXPECT_EQ(angleQ1, q1Unit.getAngle());
-    EXPECT_ANY_THROW(qIdy.getAngle());
-    EXPECT_ANY_THROW(qIdy.getAxis());
+    EXPECT_ANY_THROW(qIdentity.getAngle());
+    EXPECT_ANY_THROW(qIdentity.getAxis());
     EXPECT_NEAR(axis[0], q1axis[0], 1e-6);
     EXPECT_NEAR(axis[1], q1axis[1], 1e-6);
     EXPECT_NEAR(axis[2], q1axis[2], 1e-6);
@@ -171,27 +191,43 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::nlerp(qNoRot, q3, 1, true), q3);
     EXPECT_EQ(Quatd::nlerp(qNoRot, q3, 0.5, true), qLerpInter.normalize());
     Quatd q3Minus(-q3);
-    EXPECT_EQ(Quatd::nlerp(qNoRot, q3, 0.5), -Quatd::nlerp(qNoRot, q3Minus, 0.5));
+    EXPECT_EQ(Quatd::nlerp(qNoRot, q3, 0.4), -Quatd::nlerp(qNoRot, q3Minus, 0.4));
+    EXPECT_EQ(Quatd::slerp(qNoRot, q3, 0, true), qNoRot);
+    EXPECT_EQ(Quatd::slerp(qNoRot, q3, 1, true), q3);
+    EXPECT_EQ(Quatd::slerp(qNoRot, q3, 0.5, true), -Quatd::nlerp(qNoRot, -q3, 0.5, true));
+    EXPECT_EQ(Quatd::slerp(qNoRot, q1, 0.5), Quatd(0.76895194, 0.2374325, 0.35614876, 0.47486501));
+    EXPECT_EQ(Quatd::slerp(-qNoRot, q1, 0.5), Quatd(0.76895194, 0.2374325, 0.35614876, 0.47486501));
+    EXPECT_EQ(Quatd::slerp(qNoRot, -q1, 0.5), -Quatd::slerp(-qNoRot, q1, 0.5));
 
-    /*
+    Quat<double> tr1(0, axis);
+	Quat<double> tr2(angle / 2, axis);
+	Quat<double> tr3(angle, axis);
+	Quat<double> tr4(angle, Vec3d{-1/sqrt(2),0,1/(sqrt(2))});
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 0), tr2);
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 1), tr3);
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 0.6, true), Quatd::spline(tr1, tr2, tr3, tr4, 0.6));
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
+    EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.350391488732, 0.540748186813, 0.540748186813, 0.540748186813));
+
+ /*   
     axis = {0,0,1};
     double angle = (CV_PI / 2);
     Quatd tt0(angle/2, axis);
     Quatd tt1(2*CV_PI - angle, axis);
 
-    Quat<double> tr1(0, axis);
-	Quat<double> tr2(angle / 2, axis);
-	//Quat<double> tr3(2*CV_PI-angle, -cv::Vec<double,3>{1/sqrt(3),1/sqrt(3),1/sqrt(3)});
-	Quat<double> tr3(angle, cv::Vec<double,3>{1/sqrt(3),1/sqrt(3),1/sqrt(3)});
-	Quat<double> tr4(angle, cv::Vec<double,3>{-1/sqrt(2),0,1/(sqrt(2))});
+    //Quat<double> tr1(0, axis);
+	//Quat<double> tr2(angle / 2, axis);
+	//Quat<double> tr3(angle, cv::Vec<double,3>{1/sqrt(3),1/sqrt(3),1/sqrt(3)});
+	//Quat<double> tr4(angle, cv::Vec<double,3>{-1/sqrt(2),0,1/(sqrt(2))});
 	Quat<double> tr5(angle, cv::Vec<double,3>{2/sqrt(5),0/sqrt(5),-1/(sqrt(5))});
-	std::vector<Quat<double>> trs{tr1,tr2,tr3,tr4,tr5};
+	std::vector<Quat<double>> trs{-tr1,-tr2,-tr3,-tr4,-tr5};
 
-    cv::Mat p = (cv::Mat_<double>(3,1) << 1,0,0);
+    cv::Mat p = (cv::Mat_<double>(3,1) << 1, 0, 0);
 	cv::Mat ans;
 	Quat<double> t_12;
 
-for (size_t i = 0; i < 3; ++i)
+for (size_t i = 0; i < 1; ++i)
 	{
         double j=0;
 		while (j < 1)
@@ -204,11 +240,12 @@ for (size_t i = 0; i < 3; ++i)
 				if(i == 2){
 					q3 = trs[i+2];
 				}
-            Quat<double> minu = -trs[i+1];
+            //Quat<double> minu = -trs[i+1];
             //std::cout << minu << std::endl;
-            //t_12 = Quat<double>::nlerp(trs[i], trs[i+1], j);
-            //t_12 = Quat<double>::slerp(q0, q1, j);
-			t_12 = Quat<double>::spline(q0,q1,q2,q3,j,true);
+           // t_12 = Quat<double>::nlerp(trs[i], trs[i+1], j);
+            //t_12 = Quat<double>::slerp(qNoRot, -q3, j);
+			t_12 = Quat<double>::spline(-tr1,-tr2,tr3,-tr3,0.5,true);
+            std::cout << t_12 << std::endl;
             j = j + 0.05;
 			ans = (t_12.toRotMat3x3() * p).t();
 			std::cout << ans << std::endl;

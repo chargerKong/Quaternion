@@ -46,6 +46,11 @@ namespace cv
     template <typename _Tp>
     class Quat
     {
+    using value_type = typename std::enable_if<
+        std::is_same<float, _Tp>::value||
+        std::is_same<double, _Tp>::value,
+        _Tp
+        >::type;
     public:
         Quat() = default;
         explicit Quat(const cv::Vec<_Tp, 4> &coeff);
@@ -89,23 +94,24 @@ namespace cv
          */
         template <typename T>
         friend Quat<T> power(const Quat<T>& q, T x, bool assumeUnit);
-
-        Quat<_Tp> power(_Tp x, bool assumeUnit) const;
+        
+        Quat<_Tp> power(_Tp x, bool assumeUnit=false) const;
         /**
          * @brief return thr \sqrt{q}
          */
-        //template <typename T>
-        //friend Quat<T> sqrt(const Quat<T>& q);
+        template <typename T>
+        friend Quat<T> sqrt(const Quat<T>& q, bool assumeUnit);
 
-        Quat<_Tp> sqrt() const;
+        Quat<_Tp> sqrt(bool assumeUnit=false) const;
         /**
          * @brief return the value of power function with quaternion p
          * q^p = e^{pln(q)}
+         * @param asssumeUnit represents p is unit quaternion or not
          */
         template <typename T>
-        friend Quat<T> power(const Quat<T> &q, const Quat<T> &p);
+        friend Quat<T> power(const Quat<T> &p, const Quat<T> &q, bool assumeUnit);
 
-        Quat<_Tp> power(const Quat<_Tp> &p) const;
+        Quat<_Tp> power(const Quat<_Tp> &p, bool assumeUnit=false) const;
         /**
          * @ brief return the crossProduct between q and q1
          */
@@ -132,7 +138,7 @@ namespace cv
          * which satisfies q * q^-1 = 1
          */
         template <typename T>
-        friend Quat<T> inv(const Quat<T> &q1);
+        friend Quat<T> inv(const Quat<T> &q1, bool assumeUnit);
         Quat<_Tp> inv(bool assumeUnit=false) const;
 
         /**
@@ -179,7 +185,7 @@ namespace cv
 
         Quat<_Tp> tan() const;
 
-
+        /*
         template <typename T>
         friend Quat<T> asin(const Quat<T> &q1);
 
@@ -189,7 +195,6 @@ namespace cv
 
         template <typename T>
         friend Quat<T> acos(const Quat<T> &q1);
-
 
         Quat<_Tp> acos() const;
 
@@ -214,17 +219,17 @@ namespace cv
         friend Quat<T> atanh(const Quat<T> &q1);
 
         Quat<_Tp> atanh() const;
-
+        */
         /**
          * @brirf to dermined whether a quaternion is normalized or not
          */
         //bool isNormal(_Tp esp=defaultVa) const;
-        bool isNormal() const;
+        //bool isNormal() const;
 
         /**
          * @brief to throw an un-normalized error if its not an unit-quaternion
          */
-        void assertNormal() const;
+        //void assertNormal() const;
 
         /**
          * @brief transform the quaternion q to a 3x3 rotate matrix. The quaternion
@@ -312,7 +317,7 @@ namespace cv
          * @param q_1 a quaternion used in normalized linear interpolation
          * @param t percent of vector \overrightarrow{q_0q_1}
          */
-        static Quat<_Tp> nlerp(Quat<_Tp> &q0, Quat &q1, const _Tp t, bool assumeUnit=false);
+        static Quat<_Tp> nlerp(const Quat<_Tp> &q0, const Quat &q1, const _Tp t, bool assumeUnit=false);
 
         /**
          * @brief To calculate the interpolation between q_0 and q_1 by Spherical Linear Interpolation(Slerp).
@@ -323,7 +328,7 @@ namespace cv
          * @param t percent of angle between q_0 and q_1
          * @param assumeUnit true when q_0 and q_1 is unit quaternion, which represents the standard process of Slerp
         */
-        static Quat<_Tp> slerp(Quat<_Tp> &q0, Quat &q1, const _Tp t, bool assumeUnit=false);
+        static Quat<_Tp> slerp(const Quat<_Tp> &q0, const Quat &q1, const _Tp t, bool assumeUnit=false, bool directChange=true);
 
         /**
          * @brief To calculate the interpolation between q_0, q_1, q_2, q_3 by Spherical and quadrangle(Squad).
@@ -335,9 +340,10 @@ namespace cv
          * @param t t in [0, 1] interpolation parameter of quadratic and linear interpolation
          * @param assumeUnit true if all quaternions are unit
          */
-        static Quat<_Tp> squad(Quat<_Tp> &q0, Quat<_Tp> &q1,
-                               Quat<_Tp> &q2, Quat<_Tp> &q3,
-                               const _Tp t, bool assumeUnit=false);
+        static Quat<_Tp> squad(const Quat<_Tp> &q0, const Quat<_Tp> &q1,
+                               const Quat<_Tp> &q2, const Quat<_Tp> &q3,
+                               const _Tp t, bool assumeUnit=false,
+                               bool directChange=true);
 
         /**
          * @brief to calculate the intermedia quaternion between each three quaternion
@@ -346,16 +352,16 @@ namespace cv
          * @param q_2 the third quaternion used in interPoint
          * @param assumeUnit true if all quaternions are unit
          */
-        static Quat<_Tp> interPoint(Quat<_Tp> &q0, Quat<_Tp> &q1,
-                                    Quat<_Tp> &q2, bool assumeUnit=false);
+        static Quat<_Tp> interPoint(const Quat<_Tp> &q0, const Quat<_Tp> &q1,
+                                    const Quat<_Tp> &q2, bool assumeUnit=false);
         /**
          * @brief the spline curve is constructed by squad. The C^1 continuous
          * is composed of two quaternion s1 and s2, which can be calculated by
          * each three points by interPoint function. The q1 and q2 are curve
          * segment to be interpolated
          */
-        static Quat<_Tp> spline(Quat<_Tp> &q0, Quat<_Tp> &q1,
-                                Quat<_Tp> &q2, Quat<_Tp> &q3,
+        static Quat<_Tp> spline(const Quat<_Tp> &q0, const Quat<_Tp> &q1,
+                                const Quat<_Tp> &q2, const Quat<_Tp> &q3,
                                 const _Tp t, bool assumeUnit=false);
 
         static Quat<_Tp> splinet(std::vector<Quat<_Tp>> vec, const _Tp t, bool assumeUnit=false, std::string method="squad");
@@ -386,7 +392,7 @@ namespace cv
     };
     
     template <typename T>
-    Quat<T> inv(const Quat<T> &q1);
+    Quat<T> inv(const Quat<T> &q1, bool assumeUnit=false);
 
     template <typename T>
     Quat<T> sinh(const Quat<T> &q1);
@@ -402,12 +408,12 @@ namespace cv
 
     template <typename T>
     Quat<T> cos(const Quat<T> &q1);
-
-    template <typename T>
-    Quat<T> asinh(const Quat<T> &q1);
-
+    
     template <typename T>
     Quat<T> tan(const Quat<T> &q1);
+    /*
+    template <typename T>
+    Quat<T> asinh(const Quat<T> &q1);
 
     template <typename T>
     Quat<T> acosh(const Quat<T> &q1);
@@ -423,9 +429,9 @@ namespace cv
 
     template <typename T>
     Quat<T> atan(const Quat<T> &q1);
-
+    */
     template <typename T>
-    Quat<T> power(const Quat<T> &q, const Quat<T> &p);
+    Quat<T> power(const Quat<T> &q, const Quat<T> &p, bool assumeUnit=false);
 
     template <typename T>
     Quat<T> exp(const Quat<T> &q);
@@ -440,7 +446,7 @@ namespace cv
     Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q);
 
     template <typename S>
-    CV_EXPORTS Quat<S> sqrt(Quat<S> &q);
+    Quat<S> sqrt(Quat<S> &q, bool assumeUnit=false);
 
     template <typename S>
     Quat<S> operator*(const S, const Quat<S>&);
