@@ -27,6 +27,7 @@
 #include <iostream>
 namespace cv 
 {
+    #define CV_QUAT_EPS 1.e-6
     /**
      * Quaternion are a number system that extends the complex numbers.
      * A quaternion is generally represented in the form:
@@ -84,7 +85,7 @@ namespace cv
          * ln(q) = ln||q|| + \frac{v}{||v||}arccos\frac{a}{||q||}
          */
         template <typename T>
-        friend Quat<T> log(const Quat<T>& /*q*/, bool assumeUnit);
+        friend Quat<T> log(const Quat<T> &q, bool assumeUnit);
 
         Quat<_Tp> log(bool assumeUnit=false) const;
 
@@ -92,15 +93,15 @@ namespace cv
          * @brief return the value of power function with constant x
          * q^x = ||q||(cos(x\theta) + \boldsymbol{v}sin(x\theta)))
          */
-        template <typename T>
-        friend Quat<T> power(const Quat<T>& q, T x, bool assumeUnit);
+        template <typename T, typename _T>
+        friend Quat<T> power(const Quat<T> &q, _T x, bool assumeUnit);
         
         Quat<_Tp> power(_Tp x, bool assumeUnit=false) const;
         /**
          * @brief return thr \sqrt{q}
          */
         template <typename T>
-        friend Quat<T> sqrt(const Quat<T>& q, bool assumeUnit);
+        friend Quat<T> sqrt(const Quat<T> &q, bool assumeUnit);
 
         Quat<_Tp> sqrt(bool assumeUnit=false) const;
         /**
@@ -139,6 +140,7 @@ namespace cv
          */
         template <typename T>
         friend Quat<T> inv(const Quat<T> &q1, bool assumeUnit);
+        
         Quat<_Tp> inv(bool assumeUnit=false) const;
 
         /**
@@ -150,59 +152,44 @@ namespace cv
 
         Quat<_Tp> sinh() const;
 
-
         template <typename T>
         friend Quat<T> cosh(const Quat<T> &q1);
 
-
         Quat<_Tp> cosh() const;
-
 
         template <typename T>
         friend Quat<T> tanh(const Quat<T> &q1);
 
-
         Quat<_Tp> tanh() const;
-
 
         template <typename T>
         friend Quat<T> sin(const Quat<T> &q1);
 
-
         Quat<_Tp> sin() const;
-
 
         template <typename T>
         friend Quat<T> cos(const Quat<T> &q1);
 
-
         Quat<_Tp> cos() const;
-
 
         template <typename T>
         friend Quat<T> tan(const Quat<T> &q1);
 
-
         Quat<_Tp> tan() const;
 
-        
         template <typename T>
         friend Quat<T> asin(const Quat<T> &q1);
 
-
         Quat<_Tp> asin() const;
-
 
         template <typename T>
         friend Quat<T> acos(const Quat<T> &q1);
-
+        
         Quat<_Tp> acos() const;
-
 
         template <typename T>
         friend Quat<T> atan(const Quat<T> &q1);
-
-
+        
         Quat<_Tp> atan() const;
 
         template <typename T>
@@ -223,13 +210,12 @@ namespace cv
         /**
          * @brirf to dermined whether a quaternion is normalized or not
          */
-        //bool isNormal(_Tp esp=defaultVa) const;
-        //bool isNormal() const;
+        bool isNormal(_Tp esp=CV_QUAT_ESP) const;
 
         /**
          * @brief to throw an un-normalized error if its not an unit-quaternion
          */
-        //void assertNormal() const;
+        void assertNormal() const;
 
         /**
          * @brief transform the quaternion q to a 3x3 rotate matrix. The quaternion
@@ -263,7 +249,7 @@ namespace cv
          * \end{bmatrix}
 
          */
-        cv::Mat toRotMat4x4() const;
+        cv::Mat toRotMat4x4(bool assumeUnit=false) const;
 
         /**
          * @brief transoform the quaternion q to a Vec<T, 4>
