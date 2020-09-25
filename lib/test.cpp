@@ -41,13 +41,24 @@ TEST_F(QuatTest, constructor){
     Mat R1 = (Mat_<double>(3, 3) << -1.0 / 3, 2.0 / 3 , 2.0 / 3,
                                    2.0 / 3 , -1.0 / 3, 2.0 / 3,
                                    2.0 / 3 , 2.0 / 3 , -1.0 / 3);
-    Quat<double> qMat(R1);
-    Mat R2 = (Mat_<double>(3, 3) << 0.0, 1.0, 0.0,
-                                    0.0, 0.0, 1.0,
-                                    1.0, 0.0, 0.0);
+    Mat R2 = (Mat_<double>(3, 3) << -2.0 / 3, -2.0 / 3, -1.0 / 3,
+                                    -2.0 / 3, 1.0 / 3, 2.0 / 3,
+                                    -1.0 / 3, 2.0 / 3, -2.0 / 3);
+    Mat R3 = (Mat_<double>(3, 3) << 0.818181818181, 0.181818181818, 0.54545455454,
+                                    0.545454545545, -0.54545454545, -0.6363636364,
+                                    0.181818181818, 0.818181818182, -0.5454545455);
+    Mat R4 = (Mat_<double>(3, 3) << 0.818181818181, -0.181818181818, 0.54545455454,
+                                    0.545454545545, 0.54545454545, -0.6363636364,
+                                    -0.181818181818, 0.818181818182, 0.5454545455);
+    Quatd qMat(R1);
     Quatd qMat2(R2);
-    EXPECT_EQ(qMat2, Quatd(0.5,0.5,0.5,0.5));
+    Quatd qMat3(R3);
+    Quatd qMat4(R4);
+    EXPECT_EQ(qMat2, Quatd(0, -0.408248290463, 0.816496580927, 0.408248904638));
+    EXPECT_EQ(qMat3, Quatd(-0.426401432711,-0.852802865422, -0.213200716355, -0.2132007163));
     EXPECT_EQ(qMat, q3);
+    EXPECT_EQ(qMat4, -Quatd(0.852802865422, 0.426401432711221, 0.2132007163556, 0.2132007163));
+
     Vec3d rod{1, 2, 3};
     Quatd rodQuad{1.0 / sqrt(15), 1. / sqrt(15), 2. / sqrt(15), 3. / sqrt(15)};
     Quatd qRot(rod);
@@ -72,14 +83,19 @@ TEST_F(QuatTest, basicfuns){
     EXPECT_ANY_THROW(q1.at(4));
     Mat R = (Mat_<double>(3, 3) << -2.0 / 3, 2.0 / 15 , 11.0 / 15,
                                    2.0 / 3 , -1.0 / 3 , 2.0 / 3  ,
-                                   1.0 / 3 , 14.0 / 15, -2.0 / 15);
+                                   1.0 / 3 , 14.0 / 15, 2.0 / 15);
+    
     Mat q1RotMat = q1.toRotMat3x3();
-    std::cout << q1RotMat << R << "\n";
+    EXPECT_EQ(Quatd(q1RotMat), q1.normalize());
+    
+    Quatd qq{0, -4, 10, 5};
+    Mat qqRotMat = qq.toRotMat3x3();
+    std::cout << Quatd(qqRotMat) << std::endl;
 
     Mat q3RotMat3 = q3.toRotMat3x3();
     Mat q3RotMat4 = q3.toRotMat4x4();
-    std::cout << q1.normalize().toRotMat3x3() << std::endl;
-    std::cout << q1.normalize().toRotMat4x4() << std::endl;
+    //std::cout << q1.normalize().toRotMat3x3() << std::endl;
+    //std::cout << q1.normalize().toRotMat4x4() << std::endl;
 
     //ASSERT_MAT_NEAR(q1RotMat, R, 1e-6);
     /*
@@ -108,7 +124,7 @@ TEST_F(QuatTest, basicfuns){
     EXPECT_EQ(exp(qNull), qIdentity);
     EXPECT_EQ(exp(Quatd(0, angle * unitAxis[0] / 2, angle * unitAxis[1] / 2, angle * unitAxis[2] / 2)), q3);
 
-    EXPECT_EQ(power(q3, 2.0), Quatd(2*angle, axis));
+    EXPECT_EQ(power(q3, 2), Quatd(2*angle, axis));
     EXPECT_EQ(power(Quatd(0.5, 0.5, 0.5, 0.5), 2.0, true), Quatd(-0.5,0.5,0.5,0.5));
     EXPECT_EQ(power(Quatd(0.5, 0.5, 0.5, 0.5), -2.0), Quatd(-0.5,-0.5,-0.5,-0.5));
     EXPECT_EQ(sqrt(q1), power(q1, 0.5));
@@ -233,7 +249,6 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
-    Quatd a = Quatd::spline(tr1, tr2, tr3, tr3, 0.5);
 
  /*   
     axis = {0,0,1};

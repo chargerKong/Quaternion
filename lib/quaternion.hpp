@@ -96,7 +96,9 @@ namespace cv
         template <typename T, typename _T>
         friend Quat<T> power(const Quat<T> &q, _T x, bool assumeUnit);
         
-        Quat<_Tp> power(_Tp x, bool assumeUnit=false) const;
+        template <typename _T>
+        Quat<_Tp> power(_T x, bool assumeUnit=false) const;
+        
         /**
          * @brief return thr \sqrt{q}
          */
@@ -104,10 +106,11 @@ namespace cv
         friend Quat<T> sqrt(const Quat<T> &q, bool assumeUnit);
 
         Quat<_Tp> sqrt(bool assumeUnit=false) const;
+        
         /**
          * @brief return the value of power function with quaternion p
          * q^p = e^{pln(q)}
-         * @param asssumeUnit represents p is unit quaternion or not
+         * @param assumeUnit represents p is unit quaternion or not
          */
         template <typename T>
         friend Quat<T> power(const Quat<T> &p, const Quat<T> &q, bool assumeUnit);
@@ -400,7 +403,7 @@ namespace cv
     
     template <typename T>
     Quat<T> asinh(const Quat<T> &q1);
-/*
+
     template <typename T>
     Quat<T> acosh(const Quat<T> &q1);
 
@@ -415,7 +418,7 @@ namespace cv
 
     template <typename T>
     Quat<T> atan(const Quat<T> &q1);
-    */
+    
     template <typename T>
     Quat<T> power(const Quat<T> &q, const Quat<T> &p, bool assumeUnit=false);
 
@@ -425,8 +428,8 @@ namespace cv
     template <typename T>
     Quat<T> log(const Quat<T> &q, bool assumeUnit=false);
 
-    template <typename T>
-    Quat<T> power(const Quat<T>& q, T x, bool assumeUnit=false);
+    template <typename T, typename _T>
+    Quat<T> power(const Quat<T>& q, _T x, bool assumeUnit=false);
 
     template <typename T>
     Quat<T> crossProduct(const Quat<T> &p, const Quat<T> &q);

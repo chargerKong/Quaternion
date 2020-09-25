@@ -25,7 +25,6 @@
 //         Longbu Wang <riskiest@gmail.com>
    
 #include "quaternion.hpp"
-#include <math.h>
 #include <vector>
 
 namespace cv{
@@ -64,15 +63,15 @@ Quat<T>::Quat(const cv::Mat &R)
         x = (R.at<T>(1, 2) - R.at<T>(2, 1)) / S;
         y = (R.at<T>(2, 0) - R.at<T>(0, 2)) / S;
         z = (R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
-        w = 0.25 * S;
+        w = -0.25 * S;
     }
     else if (R.at<T>(0, 0) > R.at<T>(1, 1) && R.at<T>(0, 0) > R.at<T>(2, 2))
     {
 
         S = std::sqrt(1.0 + R.at<T>(0, 0) - R.at<T>(1, 1) - R.at<T>(2, 2)) * 2;
-        x = 0.25 * S;
-        y = (R.at<T>(1, 0) + R.at<T>(0, 1)) / S;
-        z = (R.at<T>(0, 2) + R.at<T>(2, 0)) / S;
+        x = -0.25 * S;
+        y = -(R.at<T>(1, 0) + R.at<T>(0, 1)) / S;
+        z = -(R.at<T>(0, 2) + R.at<T>(2, 0)) / S;
         w = (R.at<T>(1, 2) - R.at<T>(2, 1)) / S;
     }
     else if (R.at<T>(1, 1) > R.at<T>(2, 2))
@@ -89,7 +88,7 @@ Quat<T>::Quat(const cv::Mat &R)
         x = (R.at<T>(0, 2) + R.at<T>(2, 0)) / S;
         y = (R.at<T>(1, 2) + R.at<T>(2, 1)) / S;
         z = 0.25 * S;
-        w = (R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
+        w = -(R.at<T>(0, 1) - R.at<T>(1, 0)) / S;
     }
 }
 
@@ -339,14 +338,15 @@ Quat<T> Quat<T>::log(bool assumeUnit) const
     return Quat<T>(std::log(qNorm), v[0] * k, v[1] * k, v[2] *k);
 }
 
-template <typename T>
-inline Quat<T> power(const Quat<T> &q1, T alpha, bool assumeUnit)
+template <typename T, typename _T>
+inline Quat<T> power(const Quat<T> &q1, _T alpha, bool assumeUnit)
 {
     return q1.power(alpha, assumeUnit);
 }
 
-template < typename T> 
-inline Quat<T> Quat<T>::power(T alpha, bool assumeUnit) const
+template < typename T>
+template < typename _T> 
+inline Quat<T> Quat<T>::power(_T alpha, bool assumeUnit) const
 {
     if (x * x + y * y + z * z > CV_QUAT_EPS) 
     {
@@ -614,7 +614,7 @@ inline Quat<T> Quat<T>::atan() const
     Quat<T> v(0, x, y, z);
     T vNorm = v.norm();
     T k = vNorm < CV_QUAT_EPS ? 1 : vNorm;
-    std::cout << *this * v/ k << std::endl;
+    //std::cout << *this * v/ k << std::endl;
     return -v / k * (*this * v / k).atanh();
 }
 
@@ -659,7 +659,7 @@ cv::Mat Quat<T>::toRotMat4x4(bool assumeUnit) const
           1,                      0,                       0,                   0,
           0,1 - 2 * (c * c + d * d), 2 * (b * c + a * d)    , 2 * (b * d - a * c),
           0,2 * (b * c - a * d)    , 1 - 2 * (b * b + d * d), 2 * (c * d + a * b),
-          0.2 * (b * d + a * c)    , 2 * (c * d - a * b)    , 1 - 2 * (b * b + c * c)};
+          0,2 * (b * d + a * c)    , 2 * (c * d - a * b)    , 1 - 2 * (b * b + c * c)};
     return cv::Mat(R).t();
 }
 
