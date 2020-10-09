@@ -1,13 +1,17 @@
-#include <iostream>
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://opencv.org/license.html.
+
+//#include "test_precomp.hpp"
+//#include <opencv2/core/quaternion.hpp>
 #include "quaternion.cpp"
-#include <iomanip>
 #include <gtest/gtest.h>
-//#include <opencv2/ts/coda_test.hpp>
+//#include <opencv2/ts/cuda_test.hpp>
 using namespace cv;
 namespace opencv_test{ namespace {
 class QuatTest: public ::testing::Test {
 protected:
-    void SetUp() override 
+    void SetUp() override
     {
         q1 = {1,2,3,4};
         q2 = {2.5,-2,3.5,4};
@@ -37,7 +41,7 @@ TEST_F(QuatTest, constructor){
     Vec<double, 4> coeff{1, 2, 3, 4};
     EXPECT_EQ(Quat<double> (coeff), q1);
     EXPECT_EQ(q3, q3UnitAxis);
-    EXPECT_ANY_THROW(Quat<double> q3(angle, unAxis));
+    EXPECT_ANY_THROW(Quat<double> q4(angle, unAxis));
     Mat R1 = (Mat_<double>(3, 3) << -1.0 / 3, 2.0 / 3 , 2.0 / 3,
                                    2.0 / 3 , -1.0 / 3, 2.0 / 3,
                                    2.0 / 3 , 2.0 / 3 , -1.0 / 3);
@@ -66,7 +70,6 @@ TEST_F(QuatTest, constructor){
     EXPECT_NO_THROW(Vec3d(0, 0, 0));
 }
 
-
 TEST_F(QuatTest, basicfuns){
     Quat<double> q1Conj{1, -2, -3, -4};
     EXPECT_EQ(q3Norm2.normalize(), q3);
@@ -84,35 +87,15 @@ TEST_F(QuatTest, basicfuns){
     Mat R = (Mat_<double>(3, 3) << -2.0 / 3, 2.0 / 15 , 11.0 / 15,
                                    2.0 / 3 , -1.0 / 3 , 2.0 / 3  ,
                                    1.0 / 3 , 14.0 / 15, 2.0 / 15);
-    
     Mat q1RotMat = q1.toRotMat3x3();
-    EXPECT_EQ(Quatd(q1RotMat), q1.normalize());
-    
-    Quatd qq{0, -4, 10, 5};
-    Mat qqRotMat = qq.toRotMat3x3();
-    std::cout << Quatd(qqRotMat) << std::endl;
-
-    Mat q3RotMat3 = q3.toRotMat3x3();
-    Mat q3RotMat4 = q3.toRotMat4x4();
-    //std::cout << q1.normalize().toRotMat3x3() << std::endl;
-    //std::cout << q1.normalize().toRotMat4x4() << std::endl;
-
-    //ASSERT_MAT_NEAR(q1RotMat, R, 1e-6);
-    /*
-    Mat q1R4 = q1Unit.toRotMat4x4();
-    Mat q1R3 = q1Unit.toRotMat3x3();
-    Mat dp3 = (Mat_<double>(3, 1) << 1,2,3);
-    Mat dp4 = (Mat_<double>(4, 1) << 0,1,2,3);
-    std::cout << "dp4:" << q1R4 << "\n";
-    std::cout << q1R3 * dp3 << "\n";
-    std::cout << q1R4 * dp4 << "\n";
-    */
+    //EXPECT_MAT_NEAR(q1RotMat, R, 1e-6);
     EXPECT_ANY_THROW(qNull.toRodrigues());
-    Vec3d rodVec{q1[1] / q1[0], q1[2] / q1[0], q1[3] / q1[0]};
-    Vec3d q1Rod = q1.toRodrigues();
+    Vec3d rodVec{q1Unit[1] / q1Unit[0], q1Unit[2] / q1Unit[0], q1Unit[3] / q1Unit[0]};
+    Vec3d q1Rod = q1Unit.toRodrigues();
     EXPECT_EQ(q1Rod[0], rodVec[0]);
     EXPECT_EQ(q1Rod[1], rodVec[1]);
     EXPECT_EQ(q1Rod[2], rodVec[2]);
+    EXPECT_EQ(rvec2Quat(rodVec), q1Unit);
 
     EXPECT_EQ(log(q1Unit, true), log(q1Unit));
     EXPECT_EQ(log(qIdentity, true), qNull);
@@ -168,7 +151,7 @@ TEST_F(QuatTest, opeartor){
     Quatd qMults{2.5, 5.0, 7.5, 10.0};
     Quatd qDvss{1.0 / 2.5, 2.0 / 2.5, 3.0 / 2.5, 4.0 / 2.5};
     Quatd qOrigin(q1);
-    
+
     EXPECT_EQ(-q1, minusQ);
     EXPECT_EQ(q1 + q2, qAdd);
     EXPECT_EQ(q1 - q2, qMinus);
@@ -194,26 +177,25 @@ TEST_F(QuatTest, opeartor){
     EXPECT_ANY_THROW(q1[4]);
     EXPECT_ANY_THROW(q1.at(4));
 }
- 
+
 TEST_F(QuatTest, quatAttrs){
     double angleQ1 = 2 * acos(1.0 / sqrt(30));
-    Vec3d axis{0.3713906763541037, 0.557086014, 0.742781352 };
-    Vec<double, 3> q1axis = q1.getAxis();
-    
+    Vec3d axis1{0.3713906763541037, 0.557086014, 0.742781352 };
+    Vec<double, 3> q1axis1 = q1.getAxis();
+
     EXPECT_EQ(angleQ1, q1.getAngle());
     EXPECT_EQ(angleQ1, q1Unit.getAngle());
     EXPECT_ANY_THROW(qIdentity.getAngle());
     EXPECT_ANY_THROW(qIdentity.getAxis());
-    EXPECT_NEAR(axis[0], q1axis[0], 1e-6);
-    EXPECT_NEAR(axis[1], q1axis[1], 1e-6);
-    EXPECT_NEAR(axis[2], q1axis[2], 1e-6);
+    EXPECT_NEAR(axis1[0], q1axis1[0], 1e-6);
+    EXPECT_NEAR(axis1[1], q1axis1[1], 1e-6);
+    EXPECT_NEAR(axis1[2], q1axis1[2], 1e-6);
     EXPECT_NEAR(q3Norm2.norm(), qNorm2, 1e-6);
     EXPECT_EQ(q3Norm2.getAngle(), angle);
-    EXPECT_NEAR(axis[0], axis[0], 1e-6);
-    EXPECT_NEAR(axis[1], axis[1], 1e-6);
-    EXPECT_NEAR(axis[2], axis[2], 1e-6);
-    EXPECT_ANY_THROW(Quat<double>(angle, axis, 0));
-
+    EXPECT_NEAR(axis1[0], axis1[0], 1e-6);
+    EXPECT_NEAR(axis1[1], axis1[1], 1e-6);
+    EXPECT_NEAR(axis1[2], axis1[2], 1e-6);
+    EXPECT_ANY_THROW(Quat<double>(angle, axis1, 0));
 }
 
 TEST_F(QuatTest, interpolation){
@@ -239,9 +221,9 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::slerp(qNoRot, -q1, 0.5), -Quatd::slerp(-qNoRot, q1, 0.5));
 
     Quat<double> tr1(0, axis);
-	Quat<double> tr2(angle / 2, axis);
-	Quat<double> tr3(angle, axis);
-	Quat<double> tr4(angle, Vec3d{-1/sqrt(2),0,1/(sqrt(2))});
+    Quat<double> tr2(angle / 2, axis);
+    Quat<double> tr3(angle, axis);
+    Quat<double> tr4(angle, Vec3d{-1/sqrt(2),0,1/(sqrt(2))});
     EXPECT_ANY_THROW(Quatd::spline(qNull, tr1, tr2, tr3, 0));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 0), tr2);
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr4, 1), tr3);
@@ -249,62 +231,15 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
-
- /*   
-    axis = {0,0,1};
-    double angle = (CV_PI / 2);
-    Quatd tt0(angle/2, axis);
-    Quatd tt1(2*CV_PI - angle, axis);
-
-    //Quat<double> tr1(0, axis);
-	//Quat<double> tr2(angle / 2, axis);
-	//Quat<double> tr3(angle, cv::Vec<double,3>{1/sqrt(3),1/sqrt(3),1/sqrt(3)});
-	//Quat<double> tr4(angle, cv::Vec<double,3>{-1/sqrt(2),0,1/(sqrt(2))});
-	Quat<double> tr5(angle, cv::Vec<double,3>{2/sqrt(5),0/sqrt(5),-1/(sqrt(5))});
-	std::vector<Quat<double>> trs{-tr1,-tr2,-tr3,-tr4,-tr5};
-
-    cv::Mat p = (cv::Mat_<double>(3,1) << 1, 0, 0);
-	cv::Mat ans;
-	Quat<double> t_12;
-
-for (size_t i = 0; i < 1; ++i)
-	{
-        double j=0;
-		while (j < 1)
-		{
-			Quat<double> q0, q1, q2, q3;
-			q0 = trs[i];
-			q1 = trs[i + 1];
-			q2 = trs[i + 2];
-			q3 = trs[i + 3];
-				if(i == 2){
-					q3 = trs[i+2];
-				}
-            //Quat<double> minu = -trs[i+1];
-            //std::cout << minu << std::endl;
-           // t_12 = Quat<double>::nlerp(trs[i], trs[i+1], j);
-            //t_12 = Quat<double>::slerp(qNoRot, -q3, j);
-			t_12 = Quat<double>::spline(-tr1,-tr2,tr3,-tr3,0.5,true);
-            std::cout << t_12 << std::endl;
-            j = j + 0.05;
-			ans = (t_12.toRotMat3x3() * p).t();
-			std::cout << ans << std::endl;
-		}
-	}	
-
- 	        //t_12 = Quat<double>::slerp(trs[2],-trs[3],0.1);
-			//ans = (t_12.toRotMat3x3() * p).t();
-			//std::cout << ans;
-*/
 }
-} // namespace 
+
+
+} // namespace
 
 }// opencv_test
 
-
-
-int main(int argc, char **argv) {  
- std::cout << "Running main() from gtest_main.cc\n";  
- testing::InitGoogleTest(&argc, argv);  
- return RUN_ALL_TESTS();  
+int main(int argc, char **argv) {
+    std::cout << "Running main() from gtest_main.cc\n";
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
