@@ -2,11 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://opencv.org/license.html.
 
-//#include "test_precomp.hpp"
-//#include <opencv2/core/quaternion.hpp>
-#include "quaternion.cpp"
-#include <gtest/gtest.h>
-//#include <opencv2/ts/cuda_test.hpp>
+#include "test_precomp.hpp"
+#include <opencv2/core/quaternion.hpp>
+#include <opencv2/ts/cuda_test.hpp>
 using namespace cv;
 namespace opencv_test{ namespace {
 class QuatTest: public ::testing::Test {
@@ -20,13 +18,13 @@ protected:
     }
     double scalar = 2.5;
     double angle = CV_PI;
-    double qNorm2 = 2.5;
+    int qNorm2 = 2;
     Vec<double, 3> axis{1, 1, 1};
     Vec<double, 3> unAxis{0, 0, 0};
     Vec<double, 3> unitAxis{1.0 / sqrt(3), 1.0 / sqrt(3), 1.0 / sqrt(3)};
     Quat<double> q3{angle, axis};
     Quat<double> q3UnitAxis{angle, unitAxis};
-    Quat<double> q3Norm2{angle, axis ,qNorm2};
+    Quat<double> q3Norm2 = q3 * qNorm2;
 
     Quat<double> q1Inv;
     Quat<double> q1;
@@ -88,7 +86,7 @@ TEST_F(QuatTest, basicfuns){
                                    2.0 / 3 , -1.0 / 3 , 2.0 / 3  ,
                                    1.0 / 3 , 14.0 / 15, 2.0 / 15);
     Mat q1RotMat = q1.toRotMat3x3();
-    //EXPECT_MAT_NEAR(q1RotMat, R, 1e-6);
+    EXPECT_MAT_NEAR(q1RotMat, R, 1e-6);
     EXPECT_ANY_THROW(qNull.toRodrigues());
     Vec3d rodVec{q1Unit[1] / q1Unit[0], q1Unit[2] / q1Unit[0], q1Unit[3] / q1Unit[0]};
     Vec3d q1Rod = q1Unit.toRodrigues();
@@ -195,7 +193,6 @@ TEST_F(QuatTest, quatAttrs){
     EXPECT_NEAR(axis1[0], axis1[0], 1e-6);
     EXPECT_NEAR(axis1[1], axis1[1], 1e-6);
     EXPECT_NEAR(axis1[2], axis1[2], 1e-6);
-    EXPECT_ANY_THROW(Quat<double>(angle, axis1, 0));
 }
 
 TEST_F(QuatTest, interpolation){
@@ -204,7 +201,7 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::lerp(qNoRot, q3, 0), qNoRot);
     EXPECT_EQ(Quatd::lerp(qNoRot, q3, 1), q3);
     EXPECT_EQ(Quatd::lerp(qNoRot, q3, 0.5), qLerpInter);
-    Quatd q3NrNn2(0, axis, qNorm2);
+    Quatd q3NrNn2 = qNoRot * qNorm2;
     EXPECT_EQ(Quatd::nlerp(q3NrNn2, q3Norm2, 0), qNoRot);
     EXPECT_EQ(Quatd::nlerp(q3NrNn2, q3Norm2, 1), q3);
     EXPECT_EQ(Quatd::nlerp(q3NrNn2, q3Norm2, 0.5), qLerpInter.normalize());
@@ -233,13 +230,6 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
 }
 
-
 } // namespace
 
 }// opencv_test
-
-int main(int argc, char **argv) {
-    std::cout << "Running main() from gtest_main.cc\n";
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
