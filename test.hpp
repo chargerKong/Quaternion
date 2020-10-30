@@ -3,3 +3,5 @@
 namespace klq{
 	int fac(int n);
 }
+
+
