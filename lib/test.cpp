@@ -23,9 +23,6 @@ protected:
     Vec<double, 3> axis{1, 1, 1};
     Vec<double, 3> unAxis{0, 0, 0};
     Vec<double, 3> unitAxis{1.0 / sqrt(3), 1.0 / sqrt(3), 1.0 / sqrt(3)};
-    Quat<double> q3{angle, axis};
-    Quat<double> q3UnitAxis{angle, unitAxis};
-    Quat<double> q3Norm2 = q3 * qNorm2;
 
     Quat<double> q1Inv;
     Quat<double> q1;
@@ -34,8 +31,28 @@ protected:
 
     Quatd qNull{0, 0, 0, 0};
     Quatd qIdentity{1, 0, 0, 0};
+    DualQuatd dq1{1, 2, 3, 4, 5, 6, 7, 8};
+    DualQuatd dqIdentity{1, 1, 1, 1, 1, 1, 1, 1};
 };
 
+TEST_F(QuatTest, constructor){
+    
+    EXPECT_NO_THROW(DualQuat<double> dq);
+    EXPECT_EQ(dq1, DualQuatd::createFromQuat(Quatd(1, 2, 3, 4), Quatd(5, 6, 7, 8)));
+}
+
+TEST_F(QuatTest, operator){
+    EXPECT_EQ(dq1 - dqIdentity, DualQuatd(0, 1, 2, 3, 4, 5, 6, 7));
+    EXPECT_EQ(-dq1, DualQuatd(-1, -2, -3, -4, -5, -6, -7, -8));
+    EXPECT_EQ(dq1 + dqIdentity, DualQuatd(2, 3, 4, 5, 6, 7, 8, 9));
+
+}
+
+TEST_F(QuatTest, basic_ops){
+    EXPECT_EQ(dq1.getReal(), Quatd(1,2,3,4));
+    EXPECT_EQ(dq1.getDual(), Quatd(5,6,7,8));
+}
+/*
 TEST_F(QuatTest, constructor){
     Vec<double, 4> coeff{1, 2, 3, 4};
     EXPECT_EQ(Quat<double> (coeff), q1);
@@ -229,8 +246,7 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
-    Quatd<int> tr10(1,2,3,4);
-}
+}*/ 
 
 } // namespace
 

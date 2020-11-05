@@ -827,6 +827,73 @@ Quat<T> Quat<T>::spline(const Quat<T> &q0, const Quat<T> &q1, const Quat<T> &q2,
     return squad(vec[1], s1, s2, vec[2], t, assumeUnit, ASSUME_NOT_UNIT);
 }
 
+template <typename T>
+DualQuat<T>::DualQuat(T w, T x, T y, T z, T w_, T x_, T y_, T z_):w(w), x(x), y(y), z(z),
+                                                                  w_(w_), x_(x_), y_(y_), z_(z_){};
+
+template <typename T>
+DualQuat<T> DualQuat<T>::createFromQuat(const Quat<T> &realPart, const Quat<T> &dualPart)
+{
+    T w = realPart.w;
+    T x = realPart.x;
+    T y = realPart.y;
+    T z = realPart.z;
+    T w_ = dualPart.w;
+    T x_ = dualPart.x;
+    T y_ = dualPart.y;
+    T z_ = dualPart.z;
+    return DualQuat<T>(w, x, y, z, w_, x_, y_, z_);
+}
+
+template <typename T>
+inline bool DualQuat<T>::operator==(const DualQuat<T> &q) const
+{
+    return (abs(w - q.w) < CV_QUAT_EPS && abs(x - q.x) < CV_QUAT_EPS && 
+            abs(y - q.y) < CV_QUAT_EPS && abs(z - q.z) < CV_QUAT_EPS && 
+            abs(w_ - q.w_) < CV_QUAT_EPS && abs(x_ - q.x_) < CV_QUAT_EPS && 
+            abs(y_ - q.y_) < CV_QUAT_EPS && abs(z_ - q.z_) < CV_QUAT_EPS);
+}
+
+template <typename T>
+inline Quat<T> DualQuat<T>::getReal() const
+{
+    return Quat<T>(w, x, y, z);
+}
+
+template <typename T>
+inline Quat<T> DualQuat<T>::getDual() const
+{
+    return Quat<T>(w_, x_, y_, z_);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator-(const DualQuat<T> &q) const
+{
+    return DualQuat<T>(w - q.w, x - q.x, y - q.y, z - q.z, w_ - q.w_, x_ - q.x_, y_ - q.y_, z_ - q.z_);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator-() const
+{
+    return DualQuat<T>(-w, -x, -y, -z, -w_, -x_, -y_, -z_);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator+(const DualQuat<T> &q) const
+{
+    return DualQuat<T>(w + q.w, x + q.x, y + q.y, z + q.z, w_ + q.w_, x_ + q.x_, y_ + q.y_, z_ + q.z_);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
+{
+    Quat<T> A = getReal();
+    Quat<T> B = getDual();
+    Quat<T> C = getReal();
+    Quat<T> D = getDual();
+    return DualQuat<T>::createFromQuat(A * C, A * D + B * C);
+}
+
 }//namepsace
 
 //! @endcond

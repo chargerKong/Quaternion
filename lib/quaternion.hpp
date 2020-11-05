@@ -1180,9 +1180,60 @@ using std::cos;
 using std::sin;
 using std::acos;
 using std::asin;
-//! @} core
-}
 
-#include "opencv2/core/quaternion.inl.hpp"
+template <typename _Tp>
+class DualQuat{
+static_assert(std::is_floating_point<_Tp>::value, "Dual quaternion only make sense with type of float or double");
+using value_type = _Tp;
+
+public:
+    DualQuat() = default;
+    
+    /**
+     * @brief create from eight same type number
+     */
+    DualQuat(_Tp w, _Tp x, _Tp y, _Tp z, _Tp w_, _Tp x_, _Tp y_, _Tp z_);
+    _Tp w, x, y, z, w_, x_, y_, z_;
+    
+    /**
+     * @brief create Dual Quaternion from two same type quaternions p and q.
+     * A Dual Quaternion \f$\sigma\f$ has the form:
+     * \f[\sigma = p + \epsilon q\f]
+     * where p and q are defined as:
+     * \f[\begin{equation}
+     *    \begin{split}
+     *    p &= w + x\boldsymbol{i} + y\boldsymbol{j} + z\boldsymbol{k}\\
+     *    q &= w\_ + x\_\boldsymbol{i} + y\_\boldsymbol{j} + z\_\boldsymbol{k}.
+     *    \end{split}
+     *    \end{equation}
+     * \f]
+     * The p and q are the real part and dual part respectively.
+     * @parm realPart a quaternion, real part of dual quaternion.
+     * @parm duaPlart a quaternion, dual part of dual quaternion.
+     * @sa Quat
+    */
+    static DualQuat<_Tp> createFromQuat(const Quat<_Tp> &realPart, const Quat<_Tp> &dualPart);
+    
+    /**
+     * @brief
+     *
+     */
+    Quat<_Tp> getReal() const;
+    Quat<_Tp> getDual() const;
+    bool operator==(const DualQuat<_Tp>&) const;
+    DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
+    DualQuat<_Tp> operator-() const;
+    DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
+    DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
+};
+
+
+using DualQuatd = DualQuat<double>; 
+using DualQuatf = DualQuat<float>; 
+
+//! @} core
+}//namespace
+
+#include "quaternion.inl.hpp"
 
 #endif /* OPENCV_CORE_QUATERNION_HPP */
