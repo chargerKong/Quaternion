@@ -111,6 +111,9 @@ template <typename _Tp> class Quat;
 template <typename S>
 std::ostream& operator<<(std::ostream&, const Quat<S>&);
 
+template <typename _Tp> class DualQuat;
+template <typename S>
+std::ostream& operator<<(std::ostream&, const DualQuat<S>&);
 //! Unit quaternion flag
 enum AssumeType
 {
@@ -1188,13 +1191,13 @@ using value_type = _Tp;
 
 public:
     DualQuat() = default;
-    
+
     /**
      * @brief create from eight same type number
      */
     DualQuat(_Tp w, _Tp x, _Tp y, _Tp z, _Tp w_, _Tp x_, _Tp y_, _Tp z_);
     _Tp w, x, y, z, w_, x_, y_, z_;
-    
+
     /**
      * @brief create Dual Quaternion from two same type quaternions p and q.
      * A Dual Quaternion \f$\sigma\f$ has the form:
@@ -1205,7 +1208,7 @@ public:
      *    p &= w + x\boldsymbol{i} + y\boldsymbol{j} + z\boldsymbol{k}\\
      *    q &= w\_ + x\_\boldsymbol{i} + y\_\boldsymbol{j} + z\_\boldsymbol{k}.
      *    \end{split}
-     *    \end{equation}
+     *   \end{equation}
      * \f]
      * The p and q are the real part and dual part respectively.
      * @parm realPart a quaternion, real part of dual quaternion.
@@ -1213,23 +1216,114 @@ public:
      * @sa Quat
     */
     static DualQuat<_Tp> createFromQuat(const Quat<_Tp> &realPart, const Quat<_Tp> &dualPart);
-    
+
     /**
-     * @brief
-     *
+     * @brief create a dual quaternion from a rotation angle \f$\thet\f$, a rotation axis
+     * \f$\boldsymbol{u}\f$ and a translation \f$\boldsymbol{t}\f$.
+     * it generates a dual quaternion \f$\sigma\f$ in the form of
+     * \f[\begin{equation}
+     *    \begin{split}
+     *    \sigma &= r + \frac{\epsilon}{2}\boldsymbol{t}r \\
+     *           &= [\cos(\frac{\theta}{2}), \boldsymbol{u}\sin(\frac{\theta}{2})]
+     *           + \frac{\epsilon}{2}[0, \boldsymbol{t}][[\cos(\frac{\theta}{2}),
+     *           \boldsymbol{u}\sin(\frac{\theta}{2})]]\\
+     *           &= \cos(\frac{\theta}{2}) + \boldsymbol{u}\sin(\frac{\theta}{2})
+     *           + \frac{\epsilon}{2}(-(\boldsymbol{t} \cdot \boldsymbol{u})\sin(\frac{\theta}{2})
+     *           + \boldsymbol{t}\cos(\frac{\theta}{2}) + \boldsymbol{u} \times \boldsymbol{t} \sin(\frac{\theta}{2})).
+     *    \end{split}
+     *    \end{equation}\f]
+     * @param angle rotation angle.
+     * @param axis a normalized rotation axis.
+     * @param translation a pure quaternion.
+     * @note axis will be normalized in this function. And translation will be applied
+     * after the rotation.
+     * @sa Quat
      */
-    Quat<_Tp> getReal() const;
-    Quat<_Tp> getDual() const;
+    static DualQuat<_Tp> createFromAngleAxisTrans(_Tp angle, const Vec<_Tp, 3> &axis, const Quat<_Tp> &translation);
+
+    /**
+     * @brief return a quaternion which represent the real part of dual quaternion.
+     * The definition of real part is in createFromQuat().
+     * @sa createFromQuat, getDualQuat
+     */
+    Quat<_Tp> getRealQuat() const;
+
+    /**
+     * @brief return a quaternion which represent the dual part of dual quaternion.
+     * The definition of dual part is in createFromQuat().
+     * @sa createFromQuat, getRealQuat
+     */
+    Quat<_Tp> getDualQuat() const;
+
+    /**
+     * @brief return the conjugate of a dual quaternion.
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma^* &= (p + \epsilon q)^*
+     *          &= (p^* + \epsilon q^*)
+     * \end{split}
+     * \end{equation}
+     * \f]
+     */
+    DualQuat<_Tp> conjugate() const;
+
+    /**
+     * @brief return the rotation in quaternion form.
+     */
+    Quat<_Tp> getRotation(AssumeType assumeUnit=ASSUME_NOT_UNIT) const;
+
+    /**
+     * @brief return the translation in pure quaternion form.
+     * The rotation \f$r\f$ in this dual quaternion \f$\sigma\f$ is applied before translation \f$\boldsymbol{v}t\f$,
+     * which has the form
+     * \f[\begin{eqaution}
+     * \begin{split}
+     * \sigma &= p + \epsilon q \\
+     *        &= r + \frac{\epsilon}{2}\boldsymbol{t}r
+     * \end{split}
+     * \end{equation}.\f]
+     * Thus, the translation can be obtained as:
+     * \f[\boldsymbol{v} = 2 * q * p^*.\f]
+     */
+    Quat<_Tp> getTranslation(AssumeType assumeUnit=ASSUME_NOT_UNIT) const;
+
+    /**
+     * @brief return the norm of dual quaternion A
+     * \f$|A| = \sqrt{A * A^*}. \f$
+     */
+    _Tp norm() const;
+
+    /**
+     * @brief return a normalized dual quaternion.
+     */
+    DualQuat<_Tp> normalize() const;
+
+    /**
+     * @brief if \f$\signma = p + \epsilon q\f$ is a dual quaternion, p is not zero,
+     * then the inverse dual quaternion is
+     * \f[\sigma^{-1} = p^{-1} - \epsilon p^{-1}qp^{-1}.\f]
+     */
+    DualQuat<_Tp> inv(AssumeType assumeUnit=ASSUME_NOT_UNIT) const;
+
+    _Tp dot(DualQuat<_Tp> p) const;
+
     bool operator==(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-() const;
     DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
+    DualQuat<_Tp> operator/(_Tp a) const;
+
+    template <typename S>
+    friend std::ostream& cv::operator<<(std::ostream&, const DualQuat<S>&);
+
+
 };
 
 
-using DualQuatd = DualQuat<double>; 
-using DualQuatf = DualQuat<float>; 
+using DualQuatd = DualQuat<double>;
+using DualQuatf = DualQuat<float>;
 
 //! @} core
 }//namespace
