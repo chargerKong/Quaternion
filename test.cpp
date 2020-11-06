@@ -32,6 +32,7 @@ protected:
     Quatd qNull{0, 0, 0, 0};
     Quatd qIdentity{1, 0, 0, 0};
     DualQuatd dq1{1, 2, 3, 4, 5, 6, 7, 8};
+    DualQuatd dq2{1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5};
     DualQuatd dqIdentity{1, 1, 1, 1, 1, 1, 1, 1};
 };
 
@@ -49,8 +50,11 @@ TEST_F(QuatTest, operator){
 }
 
 TEST_F(QuatTest, basic_ops){
-    EXPECT_EQ(dq1.getReal(), Quatd(1,2,3,4));
-    EXPECT_EQ(dq1.getDual(), Quatd(5,6,7,8));
+    EXPECT_EQ(dq1.getRealQuat(), Quatd(1,2,3,4));
+    EXPECT_EQ(dq1.getDualQuat(), Quatd(5,6,7,8));
+    EXPECT_EQ(dq1.conjugate(), DualQuatd::createFromQuat(dq1.getRealQuat().conjugate(), dq1.getDualQuat().conjugate()));
+    EXPECT_EQ((dq1 * dq2).conjugate(), dq1.conjugate() * dq2.conjugate());
+    EXPECT_EQ(dq1.normalize(), dq1/dq1.norm());
 }
 /*
 TEST_F(QuatTest, constructor){

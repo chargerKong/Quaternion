@@ -855,15 +855,38 @@ inline bool DualQuat<T>::operator==(const DualQuat<T> &q) const
 }
 
 template <typename T>
-inline Quat<T> DualQuat<T>::getReal() const
+inline Quat<T> DualQuat<T>::getRealQuat() const
 {
     return Quat<T>(w, x, y, z);
 }
 
 template <typename T>
-inline Quat<T> DualQuat<T>::getDual() const
+inline Quat<T> DualQuat<T>::getDualQuat() const
 {
     return Quat<T>(w_, x_, y_, z_);
+}
+
+template<typename T>
+inline DualQuat<T> DualQuat<T>::conjugate() const
+{
+    return DualQuat<T>(w, -x, -y, -z, w_, -x_, -y_, -z_);
+}
+
+template <typename T>
+inline T DualQuat<T>::norm() const
+{
+    return std::sqrt(w * w + x * x + y * y + z *z + w_ * w_ + x_ * x_ + y_ * y_ + z_ * z_);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::normalize() const
+{
+    T normVal = norm();
+    if (normVal < CV_QUAT_EPS)
+    {
+        CV_Error(Error::StsBadArg, "Cannot normalized this dual quaternion: the norm is too small.");
+    }
+    return *this / normVal;
 }
 
 template <typename T>
@@ -887,11 +910,17 @@ inline DualQuat<T> DualQuat<T>::operator+(const DualQuat<T> &q) const
 template <typename T>
 inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
 {
-    Quat<T> A = getReal();
-    Quat<T> B = getDual();
-    Quat<T> C = getReal();
-    Quat<T> D = getDual();
+    Quat<T> A = getRealQuat();
+    Quat<T> B = getDualQuat();
+    Quat<T> C = getRealQuat();
+    Quat<T> D = getDualQuat();
     return DualQuat<T>::createFromQuat(A * C, A * D + B * C);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator/(T a) const
+{
+    return DualQuat<T>(w / a, x / a, y / a, z / a, w_ / a, x_ / a, y_ / a, z_ / a);
 }
 
 }//namepsace

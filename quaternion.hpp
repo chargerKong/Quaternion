@@ -1205,7 +1205,7 @@ public:
      *    p &= w + x\boldsymbol{i} + y\boldsymbol{j} + z\boldsymbol{k}\\
      *    q &= w\_ + x\_\boldsymbol{i} + y\_\boldsymbol{j} + z\_\boldsymbol{k}.
      *    \end{split}
-     *    \end{equation}
+     *   \end{equation}
      * \f]
      * The p and q are the real part and dual part respectively.
      * @parm realPart a quaternion, real part of dual quaternion.
@@ -1215,16 +1215,50 @@ public:
     static DualQuat<_Tp> createFromQuat(const Quat<_Tp> &realPart, const Quat<_Tp> &dualPart);
     
     /**
-     * @brief
-     *
+     * @brief return a quaternion which represent the real part of dual quaternion.
+     * The definition of real part is in createFromQuat().
+     * @sa createFromQuat, getDualQuat
      */
-    Quat<_Tp> getReal() const;
-    Quat<_Tp> getDual() const;
+    Quat<_Tp> getRealQuat() const;
+    
+    /**
+     * @brief return a quaternion which represent the dual part of dual quaternion.
+     * The definition of dual part is in createFromQuat().
+     * @sa createFromQuat, getRealQuat
+     */
+    Quat<_Tp> getDualQuat() const;
+    
+    /**
+     * @brief return the conjugate of a dual quaternion.
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma^* &= (p + \epsilon q)^*
+     *          &= (p^* + \epsilon q^*)
+     * \end{split}
+     * \end{equation}
+     * \f]
+     */
+    DualQuat<_Tp> conjugate() const;
+    
+    /**
+     * @brief return the norm of dual quaternion A
+     * \f$|A| = \sqrt{A * A^*} \f$
+     */ 
+    _Tp norm() const;
+    
+    /**
+     * @brief return a normalized dual quaternion.
+     */
+    DualQuat<_Tp> normalize() const;
     bool operator==(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-() const;
     DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
+    //template <typename T>
+    DualQuat<_Tp> operator/(_Tp a) const;
+    
 };
 
 
