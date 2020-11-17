@@ -32,20 +32,29 @@ protected:
     Quatd qNull{0, 0, 0, 0};
     Quatd qIdentity{1, 0, 0, 0};
     DualQuatd dq1{1, 2, 3, 4, 5, 6, 7, 8};
-    DualQuatd dq2{1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5};
-    DualQuatd dqIdentity{1, 1, 1, 1, 1, 1, 1, 1};
+    Quatd trans{0, 0, 2, 0};
+    double rotation_angle = 2 * CV_PI / 3;
+    DualQuatd dq2 = DualQuatd::createFromAngleAxisTrans(rotation_angle, axis, trans);
+    DualQuatd dqAllOne{1, 1, 1, 1, 1, 1, 1, 1};
+    DualQuatd dqIdentity{1, 0, 0, 0, 0, 0, 0, 0};
 };
 
 TEST_F(QuatTest, constructor){
-    
+
     EXPECT_NO_THROW(DualQuat<double> dq);
     EXPECT_EQ(dq1, DualQuatd::createFromQuat(Quatd(1, 2, 3, 4), Quatd(5, 6, 7, 8)));
+    EXPECT_EQ(dq2 * dq2.conjugate(), dqIdentity);
+    EXPECT_EQ(dq2.getRotation(ASSUME_UNIT).norm(), 1);
+    EXPECT_EQ(dq2.getRealQuat().dot(dq2.getDualQuat()), 0);
+    EXPECT_EQ(dq2.getTranslation(ASSUME_UNIT), trans);
+    DualQuatd q(1,0,0,0,0,3,0,0);
+    DualQuatd q_conj = DualQuatd::createFromQuat(dq2.getRealQuat().conjugate(), -dq2.getDualQuat().conjugate());
+    EXPECT_EQ(dq2 * q * q_conj, DualQuatd(1,0,0,0,0,0,5,0));
 }
-
 TEST_F(QuatTest, operator){
-    EXPECT_EQ(dq1 - dqIdentity, DualQuatd(0, 1, 2, 3, 4, 5, 6, 7));
+    EXPECT_EQ(dq1 - dqAllOne, DualQuatd(0, 1, 2, 3, 4, 5, 6, 7));
     EXPECT_EQ(-dq1, DualQuatd(-1, -2, -3, -4, -5, -6, -7, -8));
-    EXPECT_EQ(dq1 + dqIdentity, DualQuatd(2, 3, 4, 5, 6, 7, 8, 9));
+    EXPECT_EQ(dq1 + dqAllOne, DualQuatd(2, 3, 4, 5, 6, 7, 8, 9));
 
 }
 
@@ -53,8 +62,19 @@ TEST_F(QuatTest, basic_ops){
     EXPECT_EQ(dq1.getRealQuat(), Quatd(1,2,3,4));
     EXPECT_EQ(dq1.getDualQuat(), Quatd(5,6,7,8));
     EXPECT_EQ(dq1.conjugate(), DualQuatd::createFromQuat(dq1.getRealQuat().conjugate(), dq1.getDualQuat().conjugate()));
-    EXPECT_EQ((dq1 * dq2).conjugate(), dq1.conjugate() * dq2.conjugate());
-    EXPECT_EQ(dq1.normalize(), dq1/dq1.norm());
+    EXPECT_EQ((dq2 * dq1).conjugate(), dq1.conjugate() * dq2.conjugate());
+    //EXPECT_EQ(dq1.conjugate() * dq1, DualQuatd(dq1.norm(), 0, 0, 0, 0, 0, 0, 0));
+    EXPECT_EQ(dq1.inv() * dq1, dqIdentity);
+    EXPECT_EQ(dq2.inv() * dq2, dqIdentity);
+    EXPECT_NEAR(dq2.getRotation(ASSUME_UNIT).norm(), 1, 1e-6);
+    EXPECT_EQ(dq2.inv(), dq2.conjugate());
+    
+    DualQuatd dq1Norm = dq1.normalize();
+    std::cout << dq1Norm.getTranslation() << std::endl; 
+    std::cout << dq1Norm.getRotation() << std::endl; 
+    //EXPECT_EQ(dq1Norm.getRealQuat().dot(dq1Norm.getDualQuat()), 0);
+
+    //EXPECT_EQ(dq1.normalize().conjugate(), dq1.normalize().inv(ASSUME_UNIT));
 }
 /*
 TEST_F(QuatTest, constructor){
@@ -250,7 +270,7 @@ TEST_F(QuatTest, interpolation){
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd::spline(tr1, -tr2, tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), -Quatd::spline(-tr1, -tr2, -tr3, tr3, 0.5));
     EXPECT_EQ(Quatd::spline(tr1, tr2, tr3, tr3, 0.5), Quatd(0.336889853392, 0.543600719487, 0.543600719487, 0.543600719487));
-}*/ 
+}*/
 
 } // namespace
 
