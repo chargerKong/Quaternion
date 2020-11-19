@@ -880,9 +880,18 @@ inline DualQuat<T> DualQuat<T>::conjugate() const
 }
 
 template <typename T>
-inline T DualQuat<T>::norm() const
+DualQuat<T> DualQuat<T>::norm(AssumeType assumeUnit) const
 {
-    return std::sqrt(w * w + x * x + y * y + z *z + w_ * w_ + x_ * x_ + y_ * y_ + z_ * z_);
+    Quat<T> real = getRealQuat();
+    T realNorm = real.norm();
+    if (assumeUnit)
+    {
+        return DualQuat<T>(realNorm, 0, 0, 0, 0, 0, 0, 0); 
+    }
+    Quat<T> dual = getDualQuat();
+    if realNorm < CV_QUAT_EPS:
+        return DualQuat<T>(0, 0, 0, 0, 0, 0, 0, 0);
+    return DualQuat<T>(realNorm, 0, 0, 0, real.dot(dual) / realNorm, 0, 0, 0);
 }
 
 template <typename T>

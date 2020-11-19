@@ -1292,7 +1292,7 @@ public:
      * @brief return the norm of dual quaternion A
      * \f$|A| = \sqrt{A * A^*}. \f$
      */
-    _Tp norm() const;
+    _Tp norm(AssumeType assumeUnit=ASSUME_NOT_UNIT) const;
 
     /**
      * @brief return a normalized dual quaternion.

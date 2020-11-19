@@ -28,7 +28,7 @@ message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 # message("The vtk DIR:"${VTK_INCLUDE_DIRS})
 # Declare the executable target built from your sources
 # add_executable(opencv_example quaternion.cpp)
-add_executable(opencv_example test.cpp)
+add_executable(opencv_example runQuat.cpp)
 
 # Link your application with OpenCV libraries
 target_link_libraries(opencv_example ${OpenCV_LIBS})
