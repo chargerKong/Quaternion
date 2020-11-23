@@ -1,5 +1,5 @@
 #include <iostream>
-#include "quaternion.hpp"
+#include <opencv2/core/quaternion.hpp>
 using namespace cv;
 int main()
 {

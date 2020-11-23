@@ -3,7 +3,7 @@
 // of this distribution and at http://opencv.org/license.html.
 
 //#include "test_precomp.hpp"
-#include "quaternion.hpp"
+#include "dualquaternion.hpp"
 #include <gtest/gtest.h>
 //#include <opencv2/ts/cuda_test.hpp>
 using namespace cv;
@@ -41,12 +41,11 @@ protected:
 
 TEST_F(QuatTest, constructor){
 
-    EXPECT_NO_THROW(DualQuat<double> dq);
     EXPECT_EQ(dq1, DualQuatd::createFromQuat(Quatd(1, 2, 3, 4), Quatd(5, 6, 7, 8)));
     EXPECT_EQ(dq2 * dq2.conjugate(), dqIdentity);
-    EXPECT_EQ(dq2.getRotation(ASSUME_UNIT).norm(), 1);
+    EXPECT_EQ(dq2.getRotation(QUAT_ASSUME_UNIT).norm(), 1);
     EXPECT_EQ(dq2.getRealQuat().dot(dq2.getDualQuat()), 0);
-    EXPECT_EQ(dq2.getTranslation(ASSUME_UNIT), trans);
+    EXPECT_EQ(dq2.getTranslation(QUAT_ASSUME_UNIT), trans);
     DualQuatd q(1,0,0,0,0,3,0,0);
     DualQuatd q_conj = DualQuatd::createFromQuat(dq2.getRealQuat().conjugate(), -dq2.getDualQuat().conjugate());
     EXPECT_EQ(dq2 * q * q_conj, DualQuatd(1,0,0,0,0,0,5,0));
@@ -65,16 +64,10 @@ TEST_F(QuatTest, basic_ops){
     EXPECT_EQ((dq2 * dq1).conjugate(), dq1.conjugate() * dq2.conjugate());
     //EXPECT_EQ(dq1.conjugate() * dq1, DualQuatd(dq1.norm(), 0, 0, 0, 0, 0, 0, 0));
     EXPECT_EQ(dq1.inv() * dq1, dqIdentity);
-    EXPECT_EQ(dq2.inv() * dq2, dqIdentity);
-    EXPECT_NEAR(dq2.getRotation(ASSUME_UNIT).norm(), 1, 1e-6);
+    EXPECT_EQ(dq2.inv(QUAT_ASSUME_UNIT) * dq2, dqIdentity);
     EXPECT_EQ(dq2.inv(), dq2.conjugate());
     
-    DualQuatd dq1Norm = dq1.normalize();
-    std::cout << dq1Norm.getTranslation() << std::endl; 
-    std::cout << dq1Norm.getRotation() << std::endl; 
-    //EXPECT_EQ(dq1Norm.getRealQuat().dot(dq1Norm.getDualQuat()), 0);
-
-    //EXPECT_EQ(dq1.normalize().conjugate(), dq1.normalize().inv(ASSUME_UNIT));
+    //EXPECT_EQ(dq1.normalize().conjugate(), dq1.normalize().inv(QUAT_ASSUME_UNIT));
 }
 /*
 TEST_F(QuatTest, constructor){

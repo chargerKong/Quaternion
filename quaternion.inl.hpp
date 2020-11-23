@@ -622,11 +622,13 @@ inline T Quat<T>::getAngle(AssumeType assumeUnit) const
 {
     if (assumeUnit)
     {
+
         return 2 * std::acos(w);
     }
     if (norm() < CV_QUAT_EPS)
     {
         CV_Error(Error::StsBadArg, "This quaternion does not represent a rotation");
+
     }
     return 2 * std::acos(w / norm());
 }
@@ -641,6 +643,7 @@ inline Vec<T, 3> Quat<T>::getAxis(AssumeType assumeUnit) const
     }
     return Vec<T, 3> {x, y, z} / (norm() * std::sin(angle / 2));
 }
+
 
 template <typename T>
 Mat Quat<T>::toRotMat4x4(AssumeType assumeUnit) const
@@ -827,177 +830,6 @@ Quat<T> Quat<T>::spline(const Quat<T> &q0, const Quat<T> &q1, const Quat<T> &q2,
     return squad(vec[1], s1, s2, vec[2], t, assumeUnit, ASSUME_NOT_UNIT);
 }
 
-template <typename T>
-DualQuat<T>::DualQuat(T w, T x, T y, T z, T w_, T x_, T y_, T z_):w(w), x(x), y(y), z(z),
-                                                                  w_(w_), x_(x_), y_(y_), z_(z_){};
-
-template <typename T>
-DualQuat<T> DualQuat<T>::createFromQuat(const Quat<T> &realPart, const Quat<T> &dualPart)
-{
-    T w = realPart.w;
-    T x = realPart.x;
-    T y = realPart.y;
-    T z = realPart.z;
-    T w_ = dualPart.w;
-    T x_ = dualPart.x;
-    T y_ = dualPart.y;
-    T z_ = dualPart.z;
-    return DualQuat<T>(w, x, y, z, w_, x_, y_, z_);
-}
-
-template <typename T>
-DualQuat<T> DualQuat<T>::createFromAngleAxisTrans(T angle, const Vec<T, 3> &axis, const Quat<T> &trans)
-{
-    Quat<T> r = Quat<T>::createFromAngleAxis(angle, axis);
-    return createFromQuat(r, trans * r / 2);
-}
-
-template <typename T>
-inline bool DualQuat<T>::operator==(const DualQuat<T> &q) const
-{
-    return (abs(w - q.w) < CV_QUAT_EPS && abs(x - q.x) < CV_QUAT_EPS &&
-            abs(y - q.y) < CV_QUAT_EPS && abs(z - q.z) < CV_QUAT_EPS &&
-            abs(w_ - q.w_) < CV_QUAT_EPS && abs(x_ - q.x_) < CV_QUAT_EPS &&
-            abs(y_ - q.y_) < CV_QUAT_EPS && abs(z_ - q.z_) < CV_QUAT_EPS);
-}
-
-template <typename T>
-inline Quat<T> DualQuat<T>::getRealQuat() const
-{
-    return Quat<T>(w, x, y, z);
-}
-
-template <typename T>
-inline Quat<T> DualQuat<T>::getDualQuat() const
-{
-    return Quat<T>(w_, x_, y_, z_);
-}
-
-template<typename T>
-inline DualQuat<T> DualQuat<T>::conjugate() const
-{
-    return DualQuat<T>(w, -x, -y, -z, w_, -x_, -y_, -z_);
-}
-
-template <typename T>
-DualQuat<T> DualQuat<T>::norm(AssumeType assumeUnit) const
-{
-    Quat<T> real = getRealQuat();
-    T realNorm = real.norm();
-    if (assumeUnit)
-    {
-        return DualQuat<T>(realNorm, 0, 0, 0, 0, 0, 0, 0); 
-    }
-    Quat<T> dual = getDualQuat();
-    if realNorm < CV_QUAT_EPS:
-        return DualQuat<T>(0, 0, 0, 0, 0, 0, 0, 0);
-    return DualQuat<T>(realNorm, 0, 0, 0, real.dot(dual) / realNorm, 0, 0, 0);
-}
-
-template <typename T>
-inline Quat<T> DualQuat<T>::getRotation(AssumeType assumeUnit) const
-{
-    if (assumeUnit)
-    {
-        return getRealQuat();
-    }
-    return getRealQuat().normalize();
-}
-
-template <typename T>
-Quat<T> DualQuat<T>::getTranslation(AssumeType assumeUnit) const
-{
-    if (assumeUnit)
-    {
-        return 2 * getDualQuat() * getRealQuat().conjugate();
-    }
-    // TODO
-    return 2 * getDualQuat() * getRealQuat().conjugate();
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::normalize() const
-{
-    T rpNorm = getRealQuat().norm();
-    if (rpNorm < CV_QUAT_EPS)
-    {
-        CV_Error(Error::StsBadArg, "Cannot normalize this dual quaternion: the norm is too small.");
-    }
-    Quat<T> dualpart = getDualQuat() / rpNorm;
-
-    return *this / rpNorm;
-}
-
-template <typename T>
-inline T DualQuat<T>::dot(DualQuat<T> q) const
-{
-    return q.w * w + q.x * x + q.y * y + q.z * z + q.w_ * w_ + q.x_ * x_ + q.y_ * y_ + q.z_ * z_;
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::inv(AssumeType assumeUnit) const
-{
-    Quat<T> p = getRealQuat();
-    Quat<T> q = getDualQuat();
-    if (assumeUnit)
-    {
-        //return conjugate();
-        return DualQuat<T>::createFromQuat(p.inv(), -p.inv() * q * p.inv());
-    }
-    // TODO, have problem
-    T norm2 = dot(*this);
-    if (norm2 < CV_QUAT_EPS)
-    {
-        CV_Error(Error::StsBadArg, "This dual quaternion do not have inverse dual quaternion");
-    }
-    //return conjugate() / norm2;
-    return DualQuat<T>::createFromQuat(p.inv(), -p.inv() * q * p.inv());
-  }
-
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::operator-(const DualQuat<T> &q) const
-{
-    return DualQuat<T>(w - q.w, x - q.x, y - q.y, z - q.z, w_ - q.w_, x_ - q.x_, y_ - q.y_, z_ - q.z_);
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::operator-() const
-{
-    return DualQuat<T>(-w, -x, -y, -z, -w_, -x_, -y_, -z_);
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::operator+(const DualQuat<T> &q) const
-{
-    return DualQuat<T>(w + q.w, x + q.x, y + q.y, z + q.z, w_ + q.w_, x_ + q.x_, y_ + q.y_, z_ + q.z_);
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
-{
-    Quat<T> A = getRealQuat();
-    Quat<T> B = getDualQuat();
-    Quat<T> C = q.getRealQuat();
-    Quat<T> D = q.getDualQuat();
-    return DualQuat<T>::createFromQuat(A * C, A * D + B * C);
-}
-
-template <typename T>
-inline DualQuat<T> DualQuat<T>::operator/(T a) const
-{
-    return DualQuat<T>(w / a, x / a, y / a, z / a, w_ / a, x_ / a, y_ / a, z_ / a);
-}
-
-template <typename T>
-std::ostream & operator<<(std::ostream &os, const DualQuat<T> &q)
-{
-    os << "DualQuat " << Vec<T, 8>{q.w, q.x, q.y, q.z, q.w_, q.x_, q.y_, q.z_};
-    return os;
-}
-
 }//namepsace
 
 //! @endcond
-
-#endif /*OPENCV_CORE_QUATERNIONINL_HPP*/
