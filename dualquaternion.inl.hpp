@@ -202,7 +202,28 @@ std::ostream & operator<<(std::ostream &os, const DualQuat<T> &q)
     return os;
 }
 
-
+template <typename T>
+DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, const T t)
+{
+    DualQuat<T> v0(q0), v1(q1);
+    Quat<T> v0Real = v0.getRealQuat();
+    Quat<T> v1Real = v1.getRealQuat();
+    if (v1Real.dot(v0Real) < 0)
+    {
+        v0 = -v0;
+    }
+    DualQuat<T> v0inv1 = v0.inv() * v1;
+    Quat<T> real = v0inv1.getRealQuat();
+    T angle = real.getAngle();
+    Vec<T, 3> axis = real.getAxis();
+    Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
+    Quat<T> distance = real.conjugate() * v0inv1.getDualQuat() * 2;
+    T newd = distance.dot(qaxis) * t;
+    Quat<T> m = (distance.crossProduct(qaxis) + qaxis.crossProduct(distance.crossProduct(qaxis)) * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
+    T newAngle_half = angle * t / 2;
+    Quat<T> ansDual = Quat<T>(-newd / 2 * std::sin(newAngle_half), 0.0, 0.0, 0.0) + std::sin(newAngle_half) * m + newd / 2 * std::cos(newAngle_half) * qaxis;
+    return v0 * createFromQuat(Quat<T>::createFromAngleAxis(newAngle_half * 2, axis), ansDual);
+}
 
 } //namespace 
 

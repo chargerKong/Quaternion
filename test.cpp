@@ -66,6 +66,29 @@ TEST_F(QuatTest, basic_ops){
     EXPECT_EQ(dq1.inv() * dq1, dqIdentity);
     EXPECT_EQ(dq2.inv(QUAT_ASSUME_UNIT) * dq2, dqIdentity);
     EXPECT_EQ(dq2.inv(), dq2.conjugate());
+    std::cout << "unit:\n" << dq2 << std::endl;
+    double angle = dq2.getRealQuat().getAngle();
+    Vec3d axis = dq2.getRealQuat().getAxis();
+    Quatd p = dq2.getRealQuat(), q = dq2.getDualQuat();
+    Quatd t = 2 * q * p.conjugate();
+    Quatd qaxis = (Quatd(0, axis[0], axis[1], axis[2]));
+    double d = t.dot(qaxis);
+    Quatd m = (t.crossProduct(qaxis) + qaxis.crossProduct(t.crossProduct(qaxis)) * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
+    Quatd r(std::cos(angle / 2), axis[0] * std::sin(angle / 2), axis[1] * std::sin(angle / 2), axis[2] * std::sin(angle / 2)); 
+ 
+    Quatd dualpart = Quatd(-d / 2 * std::sin(angle/ 2),0,0,0) + std::sin(angle / 2) * m + d / 2 * std::cos(angle / 2) * qaxis;
+    std::cout << "r + eps * t * r / 2 + \n" << DualQuatd::createFromQuat(r, t * r / 2) << std::endl;
+    std::cout << "dualpart:" << 1.0/2 *t *(Quatd(std::cos(angle/2),0,0,0) + qaxis * std::sin(angle/2)) << std::endl;
+    std::cout << "dualpart:" << Quatd(-d / 2 * std::sin(angle/ 2),0,0,0) + std::sin(angle / 2) * t.crossProduct(qaxis) / 2 + t / 2 * std::cos(angle / 2) << std::endl;
+    std::cout << "dualpart:" << dualpart << std::endl;
+    DualQuatd point(1,0,0,0,0,3,0,0);
+    for(int i = 0; i < 21; ++i)
+    {
+        DualQuatd dq3 =  DualQuatd::sclerp(dqIdentity, dq2, i*1.0/20);
+        DualQuatd q_conj = DualQuatd::createFromQuat(dq3.getRealQuat().conjugate(), -dq3.getDualQuat().conjugate());
+        std::cout << dq3 * point * q_conj << std::endl;
+    }
+    
     
     //EXPECT_EQ(dq1.normalize().conjugate(), dq1.normalize().inv(QUAT_ASSUME_UNIT));
 }

@@ -178,6 +178,8 @@ public:
 
     _Tp dot(DualQuat<_Tp> p) const;
 
+    static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t);
+
     bool operator==(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-() const;
