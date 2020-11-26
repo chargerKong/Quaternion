@@ -32,7 +32,7 @@ protected:
     Quatd qNull{0, 0, 0, 0};
     Quatd qIdentity{1, 0, 0, 0};
     DualQuatd dq1{1, 2, 3, 4, 5, 6, 7, 8};
-    Quatd trans{0, 0, 2, 0};
+    Quatd trans{0, 0, 0, 5};
     double rotation_angle = 2 * CV_PI / 3;
     DualQuatd dq2 = DualQuatd::createFromAngleAxisTrans(rotation_angle, axis, trans);
     DualQuatd dqAllOne{1, 1, 1, 1, 1, 1, 1, 1};
@@ -43,12 +43,13 @@ TEST_F(QuatTest, constructor){
 
     EXPECT_EQ(dq1, DualQuatd::createFromQuat(Quatd(1, 2, 3, 4), Quatd(5, 6, 7, 8)));
     EXPECT_EQ(dq2 * dq2.conjugate(), dqIdentity);
-    EXPECT_EQ(dq2.getRotation(QUAT_ASSUME_UNIT).norm(), 1);
-    EXPECT_EQ(dq2.getRealQuat().dot(dq2.getDualQuat()), 0);
+    EXPECT_NEAR(dq2.getRotation(QUAT_ASSUME_UNIT).norm(), 1, 1e-6);
+    EXPECT_NEAR(dq2.getRealQuat().dot(dq2.getDualQuat()), 0, 1e-6);
     EXPECT_EQ(dq2.getTranslation(QUAT_ASSUME_UNIT), trans);
     DualQuatd q(1,0,0,0,0,3,0,0);
+    std::cout << dq2 << std::endl;
     DualQuatd q_conj = DualQuatd::createFromQuat(dq2.getRealQuat().conjugate(), -dq2.getDualQuat().conjugate());
-    EXPECT_EQ(dq2 * q * q_conj, DualQuatd(1,0,0,0,0,0,5,0));
+    EXPECT_EQ(dq2 * q * q_conj, DualQuatd(1,0,0,0,0,0,3,5));
 }
 TEST_F(QuatTest, operator){
     EXPECT_EQ(dq1 - dqAllOne, DualQuatd(0, 1, 2, 3, 4, 5, 6, 7));
@@ -74,17 +75,18 @@ TEST_F(QuatTest, basic_ops){
     Quatd qaxis = (Quatd(0, axis[0], axis[1], axis[2]));
     double d = t.dot(qaxis);
     Quatd m = (t.crossProduct(qaxis) + qaxis.crossProduct(t.crossProduct(qaxis)) * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
-    Quatd r(std::cos(angle / 2), axis[0] * std::sin(angle / 2), axis[1] * std::sin(angle / 2), axis[2] * std::sin(angle / 2)); 
- 
+    //Quatd r(std::cos(angle / 2), axis[0] * std::sin(angle / 2), axis[1] * std::sin(angle / 2), axis[2] * std::sin(angle / 2)); 
+    Quatd r = Quatd::createFromAngleAxis(angle, axis);
     Quatd dualpart = Quatd(-d / 2 * std::sin(angle/ 2),0,0,0) + std::sin(angle / 2) * m + d / 2 * std::cos(angle / 2) * qaxis;
     std::cout << "r + eps * t * r / 2 + \n" << DualQuatd::createFromQuat(r, t * r / 2) << std::endl;
     std::cout << "dualpart:" << 1.0/2 *t *(Quatd(std::cos(angle/2),0,0,0) + qaxis * std::sin(angle/2)) << std::endl;
     std::cout << "dualpart:" << Quatd(-d / 2 * std::sin(angle/ 2),0,0,0) + std::sin(angle / 2) * t.crossProduct(qaxis) / 2 + t / 2 * std::cos(angle / 2) << std::endl;
     std::cout << "dualpart:" << dualpart << std::endl;
     DualQuatd point(1,0,0,0,0,3,0,0);
+    DualQuatd dq = DualQuatd::createFromAngleAxisTrans(8*CV_PI/5, Vec3d{0,0,1}, Quatd{0,0,0,10});
     for(int i = 0; i < 21; ++i)
     {
-        DualQuatd dq3 =  DualQuatd::sclerp(dqIdentity, dq2, i*1.0/20);
+        DualQuatd dq3 =  DualQuatd::sclerp(dqIdentity, dq, i*1.0/20, false);
         DualQuatd q_conj = DualQuatd::createFromQuat(dq3.getRealQuat().conjugate(), -dq3.getDualQuat().conjugate());
         std::cout << dq3 * point * q_conj << std::endl;
     }
