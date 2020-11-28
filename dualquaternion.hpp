@@ -35,6 +35,7 @@ namespace cv{
 template <typename _Tp> class Quat;
 template <typename _Tp> std::ostream& operator<<(std::ostream&, const Quat<_Tp>&);
 
+// how to rotate a line and a point
 template <typename _Tp>
 class DualQuat{
     static_assert(std::is_floating_point<_Tp>::value, "Dual quaternion only make sense with type of float or double");
@@ -164,6 +165,39 @@ public:
 
     /**
      * @brief return a normalized dual quaternion.
+     * A dual quaternion can be expressed as
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &= p + \epsilon q\\
+     * &=||\sigma||\left(r+\frac{1}{2}tr\right)
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$r, t\f$ represents the rotation (ordinary quaternion) and translation (pure ordinary quaternion) respectively, 
+     * and \f[||\sigma||\f$\f$ is the norm of dual quaternion(a dual number). 
+     * A dual quaternion is unit if and only if 
+     * \f[
+     * ||p||=1, p \cdot q=0
+     * \f]
+     * where \f$\cdot\f$ means dot product.
+     * The process of normalization is 
+     * \f[
+     * \sigma_{u}=\frac{\sigma}{||\sigma||}
+     * \f]
+     * Next, we simply proof \f[\sigma_u\f$\f$ is a unit dual quaternion:
+     * \f[
+     * \renewcommand{\Im}{\operatorname{Im}}
+     * \begin{equation}
+     * \begin{split}
+     * \sigma_{u}=\frac{\sigma}{||\sigma||}&=\frac{p + \epsilon q}{||p||+\epsilon\frac{p\cdot q}{||p||}}\\
+     * &=\frac{p}{||p||}+\epsilon\left(\frac{q}{||p||}-p\frac{p\cdot q}{||p||^3}\right)\\
+     * &=\frac{p}{||p||}+\epsilon\frac{1}{||p||^2}\left(qp^{*}-p\cdot q\right)\frac{p}{||p||}\\
+     * &=\frac{p}{||p||}+\epsilon\frac{1}{||p||^2}\Im(qp^*)\frac{p}{||p||}.\\
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * As expected, the real part is a rotation and dual part is a pure quaternion.
      */
     DualQuat<_Tp> normalize() const;
 
@@ -176,21 +210,40 @@ public:
      */
     DualQuat<_Tp> inv(QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
+    /**
+     * @brief 
+     */
+
     _Tp dot(DualQuat<_Tp> p) const;
 
-    static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange);
+    template <typename _T>
+    DualQuat<_Tp> power(const _T t, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
+    
+    DualQuat<_Tp> power(const DualQuat<_Tp>&) const;
 
+    DualQuat<_Tp> exp() const;
+
+    DualQuat<_Tp> log() const;
+
+    static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+    
     bool operator==(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator-() const;
     DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
-    DualQuat<_Tp> operator/(_Tp a) const;
+    
+    template <typename S, typename T>
+    friend DualQuat<S> cv::operator*(const DualQuat<S>&, const T a);
+    
+    DualQuat<_Tp> operator/(const _Tp a) const;
+    DualQuat<_Tp> operator/(const DualQuat<_Tp>&) const;
 
     template <typename S>
     friend std::ostream& cv::operator<<(std::ostream&, const DualQuat<S>&);
 
-
+private:
+    static DualQuat<_Tp> createFromPitch(const _Tp angle, const _Tp d, const Quat<_Tp> &axis, const Quat<_Tp> &moment);
 };
 
 

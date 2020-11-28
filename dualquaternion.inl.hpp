@@ -61,6 +61,14 @@ DualQuat<T> DualQuat<T>::createFromAngleAxisTrans(T angle, const Vec<T, 3> &axis
 }
 
 template <typename T>
+DualQuat<T> DualQuat<T>::createFromPitch(const T angle, const T d, const Quat<T> &axis, const Quat<T> &moment)
+{
+    T half_angle = angle / 2, half_d = d / 2;
+    Quat<T> dual = Quat<T>(-half_d * std::sin(half_angle), 0.0, 0.0, 0.0) + std::sin(half_angle) * moment + half_d * std::cos(half_angle) * axis;
+    return createFromQuat(Quat<T>::createFromAngleAxis(angle, Vec<T, 3>{axis[1], axis[2], axis[3]}), dual);
+}
+
+template <typename T>
 inline bool DualQuat<T>::operator==(const DualQuat<T> &q) const
 {
     return (abs(w - q.w) < CV_DUAL_QUAT_EPS && abs(x - q.x) < CV_DUAL_QUAT_EPS &&
@@ -120,21 +128,19 @@ Quat<T> DualQuat<T>::getTranslation(QuatAssumeType assumeUnit) const
     {
         return 2 * getDualQuat() * getRealQuat().conjugate();
     }
-    // TODO
-    return 2 * getDualQuat() * getRealQuat().conjugate();
+    DualQuat<T> q = normalize();
+    return 2 * q.getDualQuat() * q.getRealQuat().conjugate();
 }
 
 template <typename T>
 inline DualQuat<T> DualQuat<T>::normalize() const
 {
-    T rpNorm = getRealQuat().norm();
-    if (rpNorm < CV_DUAL_QUAT_EPS)
+    DualQuat<T> qNorm = norm();
+    if (qNorm.w < CV_DUAL_QUAT_EPS)
     {
         CV_Error(Error::StsBadArg, "Cannot normalize this dual quaternion: the norm is too small.");
     }
-    //Quat<T> dualpart = getDualQuat() / rpNorm;
-
-    return *this / rpNorm;
+    return *this / qNorm;
 }
 
 template <typename T>
@@ -150,16 +156,15 @@ inline DualQuat<T> DualQuat<T>::inv(QuatAssumeType assumeUnit) const
         return conjugate();
     }
     DualQuat<T> qNorm = norm();
-    DualQuat<T> qNorm2 = qNorm * qNorm;
-    DualQuat<T> conj = conjugate();
-    Quat<T> p = conj.getRealQuat();
-    if (qNorm2.w < CV_DUAL_QUAT_EPS)
+    if (qNorm.w < CV_DUAL_QUAT_EPS)
     {
         CV_Error(Error::StsBadArg, "This dual quaternion do not have inverse dual quaternion");
     }
+    DualQuat<T> qNorm2 = qNorm * qNorm;
+    DualQuat<T> conj = conjugate();
+    Quat<T> p = conj.getRealQuat();
     return createFromQuat(p / qNorm2.w, -p * qNorm2.w_ / (qNorm2.w * qNorm2.w ) + conj.getDualQuat() / qNorm2.w);
 }
-
 
 template <typename T>
 inline DualQuat<T> DualQuat<T>::operator-(const DualQuat<T> &q) const
@@ -189,10 +194,25 @@ inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
     return DualQuat<T>::createFromQuat(A * C, A * D + B * C);
 }
 
+template <typename T, typename S>
+DualQuat<T> cv::operator*(const DualQuat<T> &q, const S a)
+{
+    static_assert(std::is_same<S, int>::value ||
+                 std::is_same<S, double>::value ||
+                 std::is_same<S, float>::value , "ni zhey buxing ");
+    return DualQuat<T>{q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a};
+}
+
 template <typename T>
-inline DualQuat<T> DualQuat<T>::operator/(T a) const
+inline DualQuat<T> DualQuat<T>::operator/(const T a) const
 {
     return DualQuat<T>(w / a, x / a, y / a, z / a, w_ / a, x_ / a, y_ / a, z_ / a);
+}
+
+template <typename T>
+inline DualQuat<T> DualQuat<T>::operator/(const DualQuat<T> &q) const
+{
+    return *this * q.inv();
 }
 
 template <typename T>
@@ -203,9 +223,33 @@ std::ostream & operator<<(std::ostream &os, const DualQuat<T> &q)
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, const T t, bool directChange)
+template <typename _T>
+DualQuat<T> DualQuat<T>::power(const _T t, QuatAssumeType assumeUnit) const
+{
+    Quat<T> p = getRealQuat();
+    T angle = p.getAngle(assumeUnit);
+    Vec<T, 3> axis = p.getAxis(assumeUnit);
+    Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
+    Quat<T> distance = getDualQuat() * p.conjugate() * 2;
+    Quat<T> m = (distance.crossProduct(qaxis) + qaxis.crossProduct(distance.crossProduct(qaxis))
+                 * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
+    if (assumeUnit)
+    {
+        return createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
+    }
+    DualQuat<T> qNorm = norm();
+    return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * std::pow(t * qNorm.w, t - 1), 0, 0, 0) * createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
+}
+
+template <typename T>
+DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, const T t, bool directChange, QuatAssumeType assumeUnit)
 {
     DualQuat<T> v0(q0), v1(q1);
+    if (!assumeUnit)
+    {
+        v0 = v0.normalize();
+        v1 = v1.normalize();
+    }
     Quat<T> v0Real = v0.getRealQuat();
     Quat<T> v1Real = v1.getRealQuat();
     if (directChange && v1Real.dot(v0Real) < 0)
@@ -213,16 +257,7 @@ DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, co
         v0 = -v0;
     }
     DualQuat<T> v0inv1 = v0.inv() * v1;
-    Quat<T> p = v0inv1.getRealQuat();
-    T angle = p.getAngle();
-    Vec<T, 3> axis = p.getAxis();
-    Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
-    Quat<T> distance = v0inv1.getDualQuat() * p.conjugate() * 2;
-    T newd = distance.dot(qaxis) * t;
-    Quat<T> m = (distance.crossProduct(qaxis) + qaxis.crossProduct(distance.crossProduct(qaxis)) * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
-    T newAngle_half = angle * t / 2;
-    Quat<T> ansDual = Quat<T>(-newd / 2 * std::sin(newAngle_half), 0.0, 0.0, 0.0) + std::sin(newAngle_half) * m + newd / 2 * std::cos(newAngle_half) * qaxis;
-    return v0 * createFromQuat(Quat<T>::createFromAngleAxis(newAngle_half * 2, axis), ansDual);
+    return v0 * v0inv1.power(t, QUAT_ASSUME_UNIT);
 }
 
 } //namespace 
