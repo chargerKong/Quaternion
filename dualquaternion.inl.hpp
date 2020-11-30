@@ -223,11 +223,61 @@ std::ostream & operator<<(std::ostream &os, const DualQuat<T> &q)
 }
 
 template <typename T>
+DualQuat<T> DualQuat<T>::exp() const
+{
+    DualQuat<T> v(0, x, y, z, 0, x_, y_, z_);
+    DualQuat<T> normV = v.norm();
+    DualQuat<T> sin_normV(std::sin(normV.w), 0, 0, 0, normV.w_ * std::cos(normV.w), 0, 0, 0);
+    DualQuat<T> cos_normV(std::cos(normV.w), 0, 0, 0, -normV.w_ * std::sin(normV.w), 0, 0, 0);
+    DualQuat<T> exp_w(std::exp(w), 0, 0, 0, w_ * std::exp(w), 0, 0, 0);
+    if (normV.w < CV_DUAL_QUAT_EPS)
+    {
+        return exp_w * (cos_normV + v);
+    }
+    DualQuat<T> k = sin_normV / normV;
+    return exp_w * (cos_normV + v * k);
+}
+
+template <typename T>
+DualQuat<T> DualQuat<T>::log(const QuatAssumeType assumeUnit) const
+{
+    DualQuat<T> v(0, x, y, z, 0, x_, y_, z_);
+    DualQuat<T> normV = v.norm();
+    if (assumeUnit)
+    {
+        if (normV.w < CV_DUAL_QUAT_EPS)
+        {
+            return v;
+        }
+        DualQuat<T> k = DualQuat<T>(std::acos(w), 0, 0, 0, -w_ * 1.0 / std::sqrt(1 - w * w), 0, 0, 0) / normV;
+        return v * k;
+    }
+    DualQuat<T> qNorm = norm();
+    if (qNorm.w < CV_DUAL_QUAT_EPS)
+    {
+        CV_Error(Error::StsBadArg, "Cannot apply this quaternion to log function: undefined");
+    }
+    DualQuat<T> log_qNorm(std::log(qNorm.w), 0, 0, 0, qNorm.w_ / qNorm.w, 0, 0, 0);
+    if (normV.w < CV_DUAL_QUAT_EPS)
+    {
+        return log_qNorm + v;
+    }
+    DualQuat<T> coeff = DualQuat<T>(w, 0, 0, 0, w_, 0, 0, 0) / qNorm;
+    DualQuat<T> k = DualQuat<T>{std::acos(coeff.w), 0, 0, 0, -coeff.w_ / std::sqrt(1 - coeff.w * coeff.w), 0, 0, 0} / normV;
+    return log_qNorm + v * k;
+}
+
+template <typename T>
 template <typename _T>
-DualQuat<T> DualQuat<T>::power(const _T t, QuatAssumeType assumeUnit) const
+DualQuat<T> DualQuat<T>::power(const _T t, const QuatAssumeType assumeUnit) const
 {
     Quat<T> p = getRealQuat();
     T angle = p.getAngle(assumeUnit);
+    DualQuat<T> qNorm = norm();
+    if (abs(angle) < CV_DUAL_QUAT_EPS)
+    {
+        return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * std::pow(t * qNorm.w, t - 1), 0, 0, 0);
+    }
     Vec<T, 3> axis = p.getAxis(assumeUnit);
     Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
     Quat<T> distance = getDualQuat() * p.conjugate() * 2;
@@ -237,7 +287,6 @@ DualQuat<T> DualQuat<T>::power(const _T t, QuatAssumeType assumeUnit) const
     {
         return createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
     }
-    DualQuat<T> qNorm = norm();
     return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * std::pow(t * qNorm.w, t - 1), 0, 0, 0) * createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
 }
 

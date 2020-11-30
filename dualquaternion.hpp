@@ -158,7 +158,7 @@ public:
      * , i.e. 
      * \f[ ||A|| = [||p||, 0, 0, 0, \frac{p \cdot q}{||p||}, 0, 0, 0, 0].\f]
      *
-     * @note we return the dual number in the form of dual quaternion.
+     * @note The data type of dual number is dual quaternion.
      * @param assumeUnit if QUAT_ASSUME_UNIT, this dual quaternion assume to be a unit quaternion and this f, this dual quaternion 
      */
     DualQuat<_Tp> norm(QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
@@ -217,13 +217,13 @@ public:
     _Tp dot(DualQuat<_Tp> p) const;
 
     template <typename _T>
-    DualQuat<_Tp> power(const _T t, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
+    DualQuat<_Tp> power(const _T t, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
     
     DualQuat<_Tp> power(const DualQuat<_Tp>&) const;
 
     DualQuat<_Tp> exp() const;
 
-    DualQuat<_Tp> log() const;
+    DualQuat<_Tp> log(const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
     static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
     

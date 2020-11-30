@@ -68,6 +68,8 @@ TEST_F(DualQuatTest, basic_ops){
     EXPECT_EQ(dq1.conjugate(), DualQuatd::createFromQuat(dq1.getRealQuat().conjugate(), dq1.getDualQuat().conjugate()));
     EXPECT_EQ((dq2 * dq1).conjugate(), dq1.conjugate() * dq2.conjugate());
     EXPECT_EQ(dq1.conjugate() * dq1, dq1.norm() * dq1.norm()); //power 对于dual number的支持？
+    EXPECT_EQ(dq1.conjugate() * dq1, dq1.norm().power(2)); //power 对于dual number的支持？
+    
     DualQuatd q1norm = dq1.normalize();
     EXPECT_EQ(dq2.norm(), dqIdentity);
     EXPECT_NEAR(q1norm.getRealQuat().norm(), 1, 1e-6);
@@ -85,6 +87,17 @@ TEST_F(DualQuatTest, basic_ops){
     EXPECT_EQ(DualQuatd::sclerp(dqIdentity, dq2, 1), dq2);
     EXPECT_EQ(DualQuatd::sclerp(dqIdentity, dq2, 0.4, false, QUAT_ASSUME_UNIT), DualQuatd(0.91354546, 0.23482951, 0.23482951, 0.23482951, -0.23482951, -0.47824988, 0.69589767, 0.69589767));
     
+    
+
+    EXPECT_EQ(dqAllZero.exp(), dqIdentity);
+    EXPECT_EQ(dqIdentity.log(), dqAllZero);
+    DualQuatd oneone{-3,0,0,0,-31.1,0,0,0};
+    DualQuatd oneone2{4,0,0,0,5.1,0,0,0};
+    EXPECT_EQ(oneone * oneone2, oneone2 * oneone);
+    EXPECT_EQ(oneone2.exp().log(), oneone2);
+    EXPECT_EQ(dq2.log(QUAT_ASSUME_UNIT).exp(), dq2);
+    EXPECT_EQ(dqIdentity.log(QUAT_ASSUME_UNIT).exp(), dqIdentity);
+    EXPECT_EQ(dq1.log().exp(), dq1);
     /* std::cout << "unit:\n" << dq2 << std::endl; */
     /* double angle = dq2.getRealQuat().getAngle(); */
     /* Vec3d axis = dq2.getRealQuat().getAxis(); */
