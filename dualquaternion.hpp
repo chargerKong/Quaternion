@@ -213,16 +213,89 @@ public:
     /**
      * @brief 
      */
-
     _Tp dot(DualQuat<_Tp> p) const;
-
-    template <typename _T>
-    DualQuat<_Tp> power(const _T t, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
+    
+    /**
+     * @brief A dual quaternion is a vector in form of
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
+     * &= \cos\hat{\frac{\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{\theta}}{2}
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$\hat{\theta}\f$ is dual angle and \f$\overline{\hat{l}}\f$ is dual axis:
+     * \f[
+     * \hat{\theta}=\theta + \epsilon d,\\
+     * \overline{\hat{l}}= \hat{l} +\epsilon m.
+     * \f]
+     * In this representation, \f$\theta\f$ is rotation angle and \f$(\hat{l},m)\f$ is the screw axis, d is the translation distance along the axis.
+     * 
+     * A convenience form of power function of dual quaternion can be expressed as:
+     * \f[
+     * \sigma^t = \cos\hat{\frac{t\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{t\theta}}{2}
+     * \f]
+     * Obviously,  this operation keeps the same screw axis and scales with both rotation angle and translation distance.
+     */
+    DualQuat<_Tp> power(const _Tp t, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
     
     DualQuat<_Tp> power(const DualQuat<_Tp>&) const;
 
+    /**
+     * @brief A dual quaternion is a vector in form of 
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
+     * &= [\hat{q}_0,\hat{q}_1,\hat{q}_2,\hat{q}_3]\\
+     * &= [\hat{q}_0,\boldsymbol{v}]
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$\hat{q}_i = p_i+\epsilon q_i\f$. \f$p_i, q_i\f$ is the element of \f$\boldsymbol{p},\boldsymbol{q}\f$ respectively.
+     * 
+     * Thus, the exponential function of a dual quaternion can be calculated as the method of a quaternion:
+     * \f[
+     * \exp(\sigma)=e^{\hat{q}_0}\left(\cos||\boldsymbol{v}||+\frac{\boldsymbol{v}}{||\boldsymbol{v}||}\sin||\boldsymbol{v}||\right)
+     * \f]
+     * To calculate \f$e^{\hat{q}_0}\f$, we expand \f$e^{\hat{q}_0}\f$ by Taylor series:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * e^{\hat{q}_0} &= e^{p_0+\epsilon q_0}\\
+     * &=e^{p_0}+\epsilon q_0e^{p_0}
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * and the same operations for \f$\cos\f$ and \f$\sin.\f$
+     */
     DualQuat<_Tp> exp() const;
 
+    /**
+     * @brief
+     * A dual quaternion is a vector in form of
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
+     * &= [\hat{q}_0,\hat{q}_1,\hat{q}_2,\hat{q}_3]\\
+     * &= [\hat{q}_0,\boldsymbol{v}]
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$\hat{q}_i = p_i+\epsilon q_i\f$. \f$p_i, q_i\f$ is the element 
+     * of \f$\boldsymbol{p},\boldsymbol{q}\f$ respectively.
+     * 
+     * Thus, the logarithm function of a dual quaternion can be calculated as the method of a quaternion:
+     * \f[
+     * \ln(\sigma)=\ln||\sigma||+\frac{\boldsymbol{v}}{||\boldsymbol{v}||}\arccos\frac{\hat{q}_0}{\boldsymbol{||v||}}
+     * \f]
+     * To calculate each function, we expand them by Taylor series, see exp for example.
+     *
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion  assume to be a unit quaternion 
+     * and this function will save some computations.
+     */ 
     DualQuat<_Tp> log(const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
     static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);

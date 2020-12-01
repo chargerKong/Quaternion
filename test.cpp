@@ -38,6 +38,11 @@ protected:
     DualQuatd dqAllOne{1, 1, 1, 1, 1, 1, 1, 1};
     DualQuatd dqAllZero{0, 0, 0, 0, 0, 0, 0, 0};
     DualQuatd dqIdentity{1, 0, 0, 0, 0, 0, 0, 0};
+    DualQuatd dqTrans{1, 0, 0, 0, 0, 2, 3, 4};
+    DualQuatd dqOnlyTrans{0, 0, 0, 0, 0, 2, 3, 4};
+    DualQuatd dualNumber1{-3,0,0,0,-31.1,0,0,0};
+    DualQuatd dualNumber2{4,0,0,0,5.1,0,0,0};
+
 };
 
 TEST_F(DualQuatTest, constructor){
@@ -63,13 +68,13 @@ TEST_F(DualQuatTest, operator){
 }
 
 TEST_F(DualQuatTest, basic_ops){
-    EXPECT_EQ(dq1.getRealQuat(), Quatd(1,2,3,4));
-    EXPECT_EQ(dq1.getDualQuat(), Quatd(5,6,7,8));
+    EXPECT_EQ(dq1.getRealQuat(), Quatd(1, 2, 3, 4));
+    EXPECT_EQ(dq1.getDualQuat(), Quatd(5, 6, 7, 8));
     EXPECT_EQ(dq1.conjugate(), DualQuatd::createFromQuat(dq1.getRealQuat().conjugate(), dq1.getDualQuat().conjugate()));
     EXPECT_EQ((dq2 * dq1).conjugate(), dq1.conjugate() * dq2.conjugate());
     EXPECT_EQ(dq1.conjugate() * dq1, dq1.norm() * dq1.norm()); //power 对于dual number的支持？
     EXPECT_EQ(dq1.conjugate() * dq1, dq1.norm().power(2)); //power 对于dual number的支持？
-    
+    EXPECT_EQ(dualNumber2.power(2.0), DualQuatd(16, 0, 0, 0, 40.8, 0, 0, 0));
     DualQuatd q1norm = dq1.normalize();
     EXPECT_EQ(dq2.norm(), dqIdentity);
     EXPECT_NEAR(q1norm.getRealQuat().norm(), 1, 1e-6);
@@ -91,13 +96,13 @@ TEST_F(DualQuatTest, basic_ops){
 
     EXPECT_EQ(dqAllZero.exp(), dqIdentity);
     EXPECT_EQ(dqIdentity.log(), dqAllZero);
-    DualQuatd oneone{-3,0,0,0,-31.1,0,0,0};
-    DualQuatd oneone2{4,0,0,0,5.1,0,0,0};
-    EXPECT_EQ(oneone * oneone2, oneone2 * oneone);
-    EXPECT_EQ(oneone2.exp().log(), oneone2);
+    EXPECT_EQ(dualNumber1 * dualNumber2, dualNumber2 * dualNumber1);
+    EXPECT_EQ(dualNumber2.exp().log(), dualNumber2);
     EXPECT_EQ(dq2.log(QUAT_ASSUME_UNIT).exp(), dq2);
     EXPECT_EQ(dqIdentity.log(QUAT_ASSUME_UNIT).exp(), dqIdentity);
     EXPECT_EQ(dq1.log().exp(), dq1);
+    EXPECT_EQ(dqTrans.log().exp(), dqTrans);
+
     /* std::cout << "unit:\n" << dq2 << std::endl; */
     /* double angle = dq2.getRealQuat().getAngle(); */
     /* Vec3d axis = dq2.getRealQuat().getAxis(); */

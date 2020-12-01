@@ -28,7 +28,7 @@
 #define OPENCV_CORE_DUALQUATERNION_INL_HPP
 
 #ifndef OPENCV_CORE_DUALQUATERNION_HPP
-#erorr This is not a standalone header. Include dualquaternion.hpp instead.
+#error This is not a standalone header. Include dualquaternion.hpp instead.
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -268,9 +268,9 @@ DualQuat<T> DualQuat<T>::log(const QuatAssumeType assumeUnit) const
 }
 
 template <typename T>
-template <typename _T>
-DualQuat<T> DualQuat<T>::power(const _T t, const QuatAssumeType assumeUnit) const
+DualQuat<T> DualQuat<T>::power(const T t, const QuatAssumeType assumeUnit) const
 {
+    return (log() * t).exp();
     Quat<T> p = getRealQuat();
     T angle = p.getAngle(assumeUnit);
     DualQuat<T> qNorm = norm();
