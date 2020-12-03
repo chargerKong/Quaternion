@@ -61,6 +61,18 @@ DualQuat<T> DualQuat<T>::createFromAngleAxisTrans(T angle, const Vec<T, 3> &axis
 }
 
 template <typename T>
+DualQuat<T> DualQuat<T>::createFromMat(InputArray _R)
+{
+    CV_CheckTypeEQ(_R.type(), cv::traits::Type<T>::value, "");
+
+    Mat R = _R.getMat();
+    Quat<T> r = Quat<T>::createFromRotMat(R.colRange(0, 3).rowRange(0, 3));
+    /* Quat<T> trans(0,1,2,3); */
+    Quat<T> trans(0, R.at<T>(0, 3), R.at<T>(1, 3), R.at<T>(2, 3));
+    return createFromQuat(r, trans * r / 2); 
+}
+
+template <typename T>
 DualQuat<T> DualQuat<T>::createFromPitch(const T angle, const T d, const Quat<T> &axis, const Quat<T> &moment)
 {
     T half_angle = angle / 2, half_d = d / 2;
@@ -194,12 +206,15 @@ inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
     return DualQuat<T>::createFromQuat(A * C, A * D + B * C);
 }
 
-template <typename T, typename S>
-DualQuat<T> cv::operator*(const DualQuat<T> &q, const S a)
+template <typename T>
+DualQuat<T> cv::operator*(const T a, const DualQuat<T> &q)
 {
-    static_assert(std::is_same<S, int>::value ||
-                 std::is_same<S, double>::value ||
-                 std::is_same<S, float>::value , "ni zhey buxing ");
+    return DualQuat<T>{q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a};
+}
+
+template <typename T>
+DualQuat<T> cv::operator*(const DualQuat<T> &q, const T a)
+{
     return DualQuat<T>{q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a};
 }
 
@@ -270,13 +285,13 @@ DualQuat<T> DualQuat<T>::log(const QuatAssumeType assumeUnit) const
 template <typename T>
 DualQuat<T> DualQuat<T>::power(const T t, const QuatAssumeType assumeUnit) const
 {
-    return (log() * t).exp();
+    return (t * log(assumeUnit)).exp();
     Quat<T> p = getRealQuat();
     T angle = p.getAngle(assumeUnit);
     DualQuat<T> qNorm = norm();
     if (abs(angle) < CV_DUAL_QUAT_EPS)
     {
-        return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * std::pow(t * qNorm.w, t - 1), 0, 0, 0);
+        return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * t * std::pow(qNorm.w, t - 1), 0, 0, 0);
     }
     Vec<T, 3> axis = p.getAxis(assumeUnit);
     Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
@@ -287,7 +302,25 @@ DualQuat<T> DualQuat<T>::power(const T t, const QuatAssumeType assumeUnit) const
     {
         return createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
     }
-    return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * std::pow(t * qNorm.w, t - 1), 0, 0, 0) * createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
+    return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * t * std::pow(qNorm.w, t - 1), 0, 0, 0) * 
+        createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);   
+}
+
+template <typename T>
+DualQuat<T> DualQuat<T>::power(const DualQuat<T> &q, const QuatAssumeType assumeUnit) const
+{
+    return (q * log(assumeUnit)).exp();
+}
+
+template <typename T>
+Matx<T, 4, 4> DualQuat<T>::toMat() const
+{
+    Matx<T, 4, 4> rot44 = getRotation().toRotMat4x4();
+    Quat<T> translation = getTranslation();
+    rot44(0, 3) = translation[1];
+    rot44(1, 3) = translation[2];
+    rot44(2, 3) = translation[3]; 
+    return rot44;
 }
 
 template <typename T>

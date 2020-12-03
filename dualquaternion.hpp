@@ -21,8 +21,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Author: Liangqian Kong <chargerKong@126.com>
-//         Longbu Wang <riskiest@gmail.com>
+// Author: Liangqian Kong <kongliangqian@huawei.com>
+//         Longbu Wang <wanglongbu@huawei.com>
 #ifndef OPENCV_CORE_DUALQUATERNION_HPP
 #define OPENCV_CORE_DUALQUATERNION_HPP 
 
@@ -35,6 +35,18 @@ namespace cv{
 template <typename _Tp> class Quat;
 template <typename _Tp> std::ostream& operator<<(std::ostream&, const Quat<_Tp>&);
 
+/**
+ * Dual quaternion was introduced to describe translation and rotation while the quaternion can only
+ * describe rotation. A dual quaternion can be classically represented as:
+ * \f[
+ * \sigma = \left(r+\frac{1}{2}tr\right)
+ * \f]
+ *
+ *
+ * To create a dual quaternion, you can use
+ * 
+ * 
+ */
 // how to rotate a line and a point
 template <typename _Tp>
 class DualQuat{
@@ -97,6 +109,35 @@ public:
      */
     static DualQuat<_Tp> createFromAngleAxisTrans(_Tp angle, const Vec<_Tp, 3> &axis, const Quat<_Tp> &translation);
 
+    /**
+     * @brief Transform this dual quaternion to a linear transformation matrix \f$M\f$.
+     * Dual quaternion consists a rotation \f$r=[a,b,c,d]\f$ and a translation \f$t=[0,\Delta x,\Delta y,\Delta z]\f$. The transformation matrix \f$M\f$ has the form
+     * \f[
+     * \begin{bmatrix}
+     * 1-2(e_2^2 +e_3^2) &2(e_1e_2-e_0e_3) &2(e_0e_2+e_1e_3) &\Delta x\\
+     * 2(e_0e_3+e_1e_2)  &1-2(e_1^2+e_3^2) &2(e_2e_3-e_0e_1) &\Delta y\\
+     * 2(e_1e_3-e_0e_2)  &2(e_0e_1+e_2e_3) &1-2(e_1^2-e_2^2) &\Delta z\\
+     * 0&0&0&1
+     * \end{bmatrix}
+     * \f]
+     *  if A is a matrix consisting of  n points to be transformed, this could be achieved by
+     * \f[
+     *  new_A = M * A
+     * \f[
+     * where A has the form
+     * \f[
+     * \begin{bmatrix}
+     * x_0& x_1& x_2&...&x_n\\
+     * y_0& y_1& y_2&...&y_n\\
+     * z_0& z_1& z_2&...&z_n\\
+     * 1&1&1&...&1
+     * \end{bmatrix}
+     * \f] 
+     * where the same subscript represent the same point. The size of A should be \f$[4,n]\f$. 
+     * and the same size for matrix new_A.
+     */
+    static DualQuat<_Tp> createFromMat(InputArray _R);
+    
     /**
      * @brief return a quaternion which represent the real part of dual quaternion.
      * The definition of real part is in createFromQuat().
@@ -237,10 +278,26 @@ public:
      * \sigma^t = \cos\hat{\frac{t\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{t\theta}}{2}
      * \f]
      * Obviously,  this operation keeps the same screw axis and scales with both rotation angle and translation distance.
+     *
+     * @param t index of power function.
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
+     * 
      */
     DualQuat<_Tp> power(const _Tp t, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
     
-    DualQuat<_Tp> power(const DualQuat<_Tp>&) const;
+    /**
+     * @brief It returns the value of \f$p^q\f$ where p and q are dual quaternion.
+     * This could be calculated as:
+     * \f[
+     * p^q = \exp(q\ln p)
+     * \f]
+     * 
+     * @param q a dual quaternion
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
+     */
+    DualQuat<_Tp> power(const DualQuat<_Tp>& q, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
     /**
      * @brief A dual quaternion is a vector in form of 
@@ -298,6 +355,8 @@ public:
      */ 
     DualQuat<_Tp> log(const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
+    Matx<_Tp, 4, 4>  toMat() const; //name may not proper
+    
     static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
     
     bool operator==(const DualQuat<_Tp>&) const;
@@ -306,8 +365,11 @@ public:
     DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
     DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
     
-    template <typename S, typename T>
-    friend DualQuat<S> cv::operator*(const DualQuat<S>&, const T a);
+    template <typename T>
+    friend DualQuat<T> cv::operator*(const T a, const DualQuat<T>&);
+    
+    template <typename T>
+    friend DualQuat<T> cv::operator*(const DualQuat<T>&, const T a);
     
     DualQuat<_Tp> operator/(const _Tp a) const;
     DualQuat<_Tp> operator/(const DualQuat<_Tp>&) const;
