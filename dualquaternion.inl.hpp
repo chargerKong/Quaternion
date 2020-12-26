@@ -36,8 +36,12 @@
 namespace cv {
 
 template <typename T>
-DualQuat<T>::DualQuat(T w, T x, T y, T z, T w_, T x_, T y_, T z_):w(w), x(x), y(y), z(z),
-                                                                  w_(w_), x_(x_), y_(y_), z_(z_){};
+DualQuat<T>::DualQuat(const T w, const T x, const T y, const T z, const T w_, const T x_, const T y_, const T z_):
+                      w(w), x(x), y(y), z(z), w_(w_), x_(x_), y_(y_), z_(z_){};
+
+template <typename T>
+DualQuat<T>::DualQuat(const Vec<T, 8> &q):w(q[0]), x(q[1]), y(q[2]), z(q[3]),
+                                          w_(q[4]), x_(q[5]), y_(q[6]), z_(q[7]){};
 
 template <typename T>
 DualQuat<T> DualQuat<T>::createFromQuat(const Quat<T> &realPart, const Quat<T> &dualPart)
@@ -54,7 +58,7 @@ DualQuat<T> DualQuat<T>::createFromQuat(const Quat<T> &realPart, const Quat<T> &
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::createFromAngleAxisTrans(T angle, const Vec<T, 3> &axis, const Quat<T> &trans)
+DualQuat<T> DualQuat<T>::createFromAngleAxisTrans(const T angle, const Vec<T, 3> &axis, const Quat<T> &trans)
 {
     Quat<T> r = Quat<T>::createFromAngleAxis(angle, axis);
     return createFromQuat(r, trans * r / 2);
@@ -67,7 +71,6 @@ DualQuat<T> DualQuat<T>::createFromMat(InputArray _R)
 
     Mat R = _R.getMat();
     Quat<T> r = Quat<T>::createFromRotMat(R.colRange(0, 3).rowRange(0, 3));
-    /* Quat<T> trans(0,1,2,3); */
     Quat<T> trans(0, R.at<T>(0, 3), R.at<T>(1, 3), R.at<T>(2, 3));
     return createFromQuat(r, trans * r / 2); 
 }
@@ -76,8 +79,10 @@ template <typename T>
 DualQuat<T> DualQuat<T>::createFromPitch(const T angle, const T d, const Quat<T> &axis, const Quat<T> &moment)
 {
     T half_angle = angle / 2, half_d = d / 2;
-    Quat<T> dual = Quat<T>(-half_d * std::sin(half_angle), 0.0, 0.0, 0.0) + std::sin(half_angle) * moment + half_d * std::cos(half_angle) * axis;
-    return createFromQuat(Quat<T>::createFromAngleAxis(angle, Vec<T, 3>{axis[1], axis[2], axis[3]}), dual);
+    Quat<T> qaxis = axis.normalize();
+    Quat<T> dual = Quat<T>(-half_d * std::sin(half_angle), 0.0, 0.0, 0.0) + std::sin(half_angle) * moment + 
+        half_d * std::cos(half_angle) * qaxis;
+    return createFromQuat(Quat<T>::createFromAngleAxis(angle, Vec<T, 3>{qaxis[1], qaxis[2], qaxis[3]}), dual);
 }
 
 template <typename T>
@@ -147,6 +152,11 @@ Quat<T> DualQuat<T>::getTranslation(QuatAssumeType assumeUnit) const
 template <typename T>
 inline DualQuat<T> DualQuat<T>::normalize() const
 {
+    Quat<T> p, q = getRealQuat(), getDualQuat();
+    Quat<T> p_n = p / p.norm();
+    Quat<T> q_n = q / p.norm();
+    return createFromQuat(p_n, q_n - p_n * p_n.dot(q_n));
+
     DualQuat<T> qNorm = norm();
     if (qNorm.w < CV_DUAL_QUAT_EPS)
     {
@@ -197,6 +207,13 @@ inline DualQuat<T> DualQuat<T>::operator+(const DualQuat<T> &q) const
 }
 
 template <typename T>
+inline DualQuat<T>& DualQuat<T>::operator+=(const DualQuat<T> &q)
+{
+    *this = *this + q;
+    return *this;
+}
+
+template <typename T>
 inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
 {
     Quat<T> A = getRealQuat();
@@ -207,15 +224,53 @@ inline DualQuat<T> DualQuat<T>::operator*(const DualQuat<T> &q) const
 }
 
 template <typename T>
-DualQuat<T> cv::operator*(const T a, const DualQuat<T> &q)
+inline DualQuat<T>& DualQuat<T>::operator*=(const DualQuat<T> &q)
 {
-    return DualQuat<T>{q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a};
+    *this = *this * q;
+    return *this;
 }
 
 template <typename T>
-DualQuat<T> cv::operator*(const DualQuat<T> &q, const T a)
+inline DualQuat<T> cv::operator+(const T a, const DualQuat<T> &q)
 {
-    return DualQuat<T>{q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a};
+    return DualQuat<T>(a + q.w, q.x, q.y, q.z, q.w_, q.x_, q.y_, q.z_);
+}
+
+template <typename T>
+inline DualQuat<T> cv::operator+(const DualQuat<T> &q, const T a)
+{
+    return DualQuat<T>(a + q.w, q.x, q.y, q.z, q.w_, q.x_, q.y_, q.z_);
+}
+
+template <typename T>
+inline DualQuat<T> cv::operator-(const DualQuat<T> &q, const T a)
+{
+    return DualQuat<T>(q.w - a, q.x, q.y, q.z, q.w_, q.x_, q.y_, q.z_);
+}
+
+template <typename T>
+inline DualQuat<T>& DualQuat<T>::operator-=(const DualQuat<T> &q)
+{
+    *this = *this - q;
+    return *this;
+}
+
+template <typename T>
+inline DualQuat<T> cv::operator-(const T a, const DualQuat<T> &q)
+{
+    return DualQuat<T>(a - q.w, -q.x, -q.y, -q.z, -q.w_, -q.x_, -q.y_, -q.z_);
+}
+
+template <typename T>
+inline DualQuat<T> cv::operator*(const T a, const DualQuat<T> &q)
+{
+    return DualQuat<T>(q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a);
+}
+
+template <typename T>
+inline DualQuat<T> cv::operator*(const DualQuat<T> &q, const T a)
+{
+    return DualQuat<T>(q.w * a, q.x * a, q.y * a, q.z * a, q.w_ * a, q.x_ * a, q.y_ * a, q.z_ * a);
 }
 
 template <typename T>
@@ -228,6 +283,13 @@ template <typename T>
 inline DualQuat<T> DualQuat<T>::operator/(const DualQuat<T> &q) const
 {
     return *this * q.inv();
+}
+
+template <typename T>
+inline DualQuat<T>& DualQuat<T>::operator/=(const DualQuat<T> &q)
+{
+    *this = *this / q;
+    return *this;
 }
 
 template <typename T>
@@ -254,7 +316,7 @@ DualQuat<T> DualQuat<T>::exp() const
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::log(const QuatAssumeType assumeUnit) const
+DualQuat<T> DualQuat<T>::log(QuatAssumeType assumeUnit) const
 {
     DualQuat<T> v(0, x, y, z, 0, x_, y_, z_);
     DualQuat<T> normV = v.norm();
@@ -283,33 +345,21 @@ DualQuat<T> DualQuat<T>::log(const QuatAssumeType assumeUnit) const
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::power(const T t, const QuatAssumeType assumeUnit) const
+DualQuat<T> DualQuat<T>::power(const T t, QuatAssumeType assumeUnit) const
 {
     return (t * log(assumeUnit)).exp();
-    Quat<T> p = getRealQuat();
-    T angle = p.getAngle(assumeUnit);
-    DualQuat<T> qNorm = norm();
-    if (abs(angle) < CV_DUAL_QUAT_EPS)
-    {
-        return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * t * std::pow(qNorm.w, t - 1), 0, 0, 0);
-    }
-    Vec<T, 3> axis = p.getAxis(assumeUnit);
-    Quat<T> qaxis{0, axis[0], axis[1], axis[2]};
-    Quat<T> distance = getDualQuat() * p.conjugate() * 2;
-    Quat<T> m = (distance.crossProduct(qaxis) + qaxis.crossProduct(distance.crossProduct(qaxis))
-                 * std::cos(angle / 2)/std::sin(angle / 2)) / 2;
-    if (assumeUnit)
-    {
-        return createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);
-    }
-    return DualQuat<T>(std::pow(qNorm.w, t), 0, 0, 0, qNorm.w_ * t * std::pow(qNorm.w, t - 1), 0, 0, 0) * 
-        createFromPitch(angle * t, distance.dot(qaxis) * t, qaxis, m);   
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::power(const DualQuat<T> &q, const QuatAssumeType assumeUnit) const
+DualQuat<T> DualQuat<T>::power(const DualQuat<T> &q, QuatAssumeType assumeUnit) const
 {
     return (q * log(assumeUnit)).exp();
+}
+
+template <typename T>
+Vec<T, 8> DualQuat<T>::toVec() const
+{
+   return Vec<T, 8>(w, x, y, z, w_, x_, y_, z_);
 }
 
 template <typename T>

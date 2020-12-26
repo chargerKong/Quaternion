@@ -10,30 +10,14 @@ using namespace cv;
 namespace opencv_test{ namespace {
 class DualQuatTest: public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        q1 = {1,2,3,4};
-        q2 = {2.5,-2,3.5,4};
-        q1Unit = {1 / sqrt(30), sqrt(2) /sqrt(15), sqrt(3) / sqrt(10), 2 * sqrt(2) / sqrt(15)};
-        q1Inv = {1.0 / 30, -1.0 / 15, -1.0 / 10, -2.0 / 15};
-    }
     double scalar = 2.5;
     double angle = CV_PI;
-    int qNorm2 = 2;
     Vec<double, 3> axis{1, 1, 1};
     Vec<double, 3> unAxis{0, 0, 0};
     Vec<double, 3> unitAxis{1.0 / sqrt(3), 1.0 / sqrt(3), 1.0 / sqrt(3)};
-
-    Quat<double> q1Inv;
-    Quat<double> q1;
-    Quat<double> q2;
-    Quat<double> q1Unit;
-
-    Quatd qNull{0, 0, 0, 0};
-    Quatd qIdentity{1, 0, 0, 0};
     DualQuatd dq1{1, 2, 3, 4, 5, 6, 7, 8};
     Quatd trans{0, 0, 0, 5};
-    double rotation_angle = 2 * CV_PI / 3;
+    double rotation_angle = 2.0 / 3 * CV_PI;
     DualQuatd dq2 = DualQuatd::createFromAngleAxisTrans(rotation_angle, axis, trans);
     DualQuatd dqAllOne{1, 1, 1, 1, 1, 1, 1, 1};
     DualQuatd dqAllZero{0, 0, 0, 0, 0, 0, 0, 0};
@@ -57,14 +41,39 @@ TEST_F(DualQuatTest, constructor){
     Matx44d R1 = dq2.toMat();
     DualQuatd dq3 = DualQuatd::createFromMat(R1);
     EXPECT_EQ(dq3, dq2);
+    Quatd qaxis{0, axis[0], axis[1], axis[2]}; // that is [0, axis]
+    qaxis = qaxis.normalize();
+    Quatd moment = 1.0 / 2 * (trans.crossProduct(qaxis) + qaxis.crossProduct(trans.crossProduct(qaxis)) * 
+                              std::cos(rotation_angle / 2) / std::sin(rotation_angle / 2));
+    double d = trans.dot(qaxis);
+    DualQuatd dq4 = DualQuatd::createFromPitch(rotation_angle, d, qaxis, moment);
+    EXPECT_EQ(dq4, dq3);
+
 }
 TEST_F(DualQuatTest, operator){
+    DualQuatd dq_origin{1, 2, 3, 4, 5, 6, 7, 8};
     EXPECT_EQ(dq1 - dqAllOne, DualQuatd(0, 1, 2, 3, 4, 5, 6, 7));
     EXPECT_EQ(-dq1, DualQuatd(-1, -2, -3, -4, -5, -6, -7, -8));
     EXPECT_EQ(dq1 + dqAllOne, DualQuatd(2, 3, 4, 5, 6, 7, 8, 9));
     EXPECT_EQ(dq1 / dq1, dqIdentity);
+    DualQuatd dq3{-4, 1, 3, 2, -15.5, 0, -3, 8.5};
+    EXPECT_EQ(dq1 * dq2, dq3);
+    EXPECT_EQ(dq3 / dq2, dq1);
     DualQuatd dq12{2, 4, 6, 8, 10, 12, 14, 16};
     EXPECT_EQ(dq1 * 2.0, dq12);
+    EXPECT_EQ(2.0 * dq1, dq12);
+    EXPECT_EQ(dq1 - 1.0, DualQuatd(0, 2, 3, 4, 5, 6, 7, 8));
+    EXPECT_EQ(1.0 - dq1, DualQuatd(0, -2, -3, -4, -5, -6, -7, -8));
+    EXPECT_EQ(dq1 + 1.0, DualQuatd(2, 2, 3, 4, 5, 6, 7, 8));
+    EXPECT_EQ(1.0 + dq1, DualQuatd(2, 2, 3, 4, 5, 6, 7, 8));
+    dq1 += dq2; 
+    EXPECT_EQ(dq1, dq_origin + dq2);
+    dq1 -= dq2;
+    EXPECT_EQ(dq1, dq_origin);
+    dq1 *= dq2;
+    EXPECT_EQ(dq1, dq_origin * dq2);
+    dq1 /= dq2;
+    EXPECT_EQ(dq1, dq_origin);
 }
 
 TEST_F(DualQuatTest, basic_ops){
@@ -104,14 +113,38 @@ TEST_F(DualQuatTest, basic_ops){
     EXPECT_EQ(dqIdentity.log(QUAT_ASSUME_UNIT).exp(), dqIdentity);
     EXPECT_EQ(dq1.log().exp(), dq1);
     EXPECT_EQ(dqTrans.log().exp(), dqTrans);
-
     Matx44d R1 = dq2.toMat();
     Matx41d point{
         3, 0, 0, 1
     };
-    //EXPECT_MAT_NEAR(R1 * point,  Matx41d{0, 3, 5, 1});
-
+    // EXPECT_MAT_NEAR(R1 * point,  Matx41d{0, 3, 5, 1});
+    
 }
+
+TEST_F(DualQuatTest, abc){
+    double angle1 = CV_PI / 2;
+    Vec3d axis{0, 0, 1};
+    Quatd t(0, 0, 0, 3);
+    DualQuatd initial = DualQuatd::createFromAngleAxisTrans(angle1, axis, t);
+    double angle2 = CV_PI;
+    DualQuatd final = DualQuatd::createFromAngleAxisTrans(angle2, axis, t);
+    DualQuatd inter = DualQuatd::sclerp(initial, final, 0.5);
+   
+    DualQuatd c1{1,2,3,4,5,6,7,8};
+    DualQuatd c2{5,6,7,8,9,10,11,12};
+    std::cout << c1 * c2 << std::endl;
+
+    DualQuatd dq22 = dqIdentity * 2.0;
+    std::cout << dq22 * dq22.inv()<< std::endl;
+    std::cout << dq22 * DualQuatd::createFromQuat(dq22.getRealQuat().inv(), -dq22.getRealQuat().inv() * dq22.getDualQuat() * dq22.getRealQuat().inv()) << std::endl;
+    std::cout << dq1.norm() * DualQuatd::createFromQuat(dq1.getRotation(), dq1.getTranslation() * dq1.getRotation() / 2) << std::endl;
+    
+
+    //Mat p = (Mat_ <double>(2, 3) << 1,0,0,1,0,1);
+    //p = p.t();
+    //dot(trans, trans);
+}
+
 
 } // namespace
 
