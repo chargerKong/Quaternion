@@ -489,11 +489,25 @@ public:
      */
     static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, 
                                 bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+    
+    static DualQuat<_Tp> dqblend(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, QuatAssumeType assumeUnit);
+    
     template <int cn>
-    void dqs(const Vec<Vec<_Tp, 3>, cn> &in_vert, const Vec<Vec<_Tp, 3>, cn> &in_normals,
-             Vec<Vec<_Tp, 3>, cn> &out_vert, Vec<Vec<_Tp, 3>, cn> &out_normals,
-             const Vec<DualQuat<_Tp>, cn> &dualquat, const Matx<_Tp, cn, cn> &weight,
-             const Matx<int, cn, cn> &joint_id);
+    static DualQuat<_Tp> gdqblend(const Vec<DualQuat<_Tp>, cn> &dualquat, const Vec<_Tp, cn> &weight);
+
+    /**
+     * @brief
+     * @param in_vert 
+     * @param in_normals
+     */
+    template <int cn>
+    static void dqs(const Vec<Vec<_Tp, 3>, cn> &in_vert, 
+                    const Vec<Vec<_Tp, 3>, cn> &in_normals,
+                    Vec<Vec<_Tp, 3>, cn> &out_vert, 
+                    Vec<Vec<_Tp, 3>, cn> &out_normals,
+                    const Vec<DualQuat<_Tp>, cn> &dualquat, 
+                    const std::vector<std::vector<_Tp>>  &weight,
+                    const std::vector<std::vector<int>> &joint_id);
     /**
      * @brief Return opposite dual quaternion \f$-p\f$
      * which satisfies \f$p + (-p) = 0.\f$

@@ -36,6 +36,9 @@
 namespace cv {
 
 template <typename T>
+DualQuat<T>::DualQuat():w(1), x(0), y(0), z(0), w_(0), x_(0), y_(0), z_(0){};
+
+template <typename T>
 DualQuat<T>::DualQuat(const T w, const T x, const T y, const T z, const T w_, const T x_, const T y_, const T z_):
                       w(w), x(x), y(y), z(z), w_(w_), x_(x_), y_(y_), z_(z_){};
 
@@ -143,26 +146,20 @@ Quat<T> DualQuat<T>::getTranslation(QuatAssumeType assumeUnit) const
 {
     if (assumeUnit)
     {
-        return 2 * getDualQuat() * getRealQuat().conjugate();
+        return 2.0 * getDualQuat() * getRealQuat().conjugate();
     }
     DualQuat<T> q = normalize();
-    return 2 * q.getDualQuat() * q.getRealQuat().conjugate();
+    return 2.0 * q.getDualQuat() * q.getRealQuat().conjugate();
 }
 
 template <typename T>
 inline DualQuat<T> DualQuat<T>::normalize() const
 {
-    Quat<T> p, q = getRealQuat(), getDualQuat();
+    Quat<T> p = getRealQuat();
+    Quat<T> q = getDualQuat();
     Quat<T> p_n = p / p.norm();
     Quat<T> q_n = q / p.norm();
     return createFromQuat(p_n, q_n - p_n * p_n.dot(q_n));
-
-    DualQuat<T> qNorm = norm();
-    if (qNorm.w < CV_DUAL_QUAT_EPS)
-    {
-        CV_Error(Error::StsBadArg, "Cannot normalize this dual quaternion: the norm is too small.");
-    }
-    return *this / qNorm;
 }
 
 template <typename T>
@@ -357,12 +354,6 @@ DualQuat<T> DualQuat<T>::power(const DualQuat<T> &q, QuatAssumeType assumeUnit) 
 }
 
 template <typename T>
-Vec<T, 8> DualQuat<T>::toVec() const
-{
-   return Vec<T, 8>(w, x, y, z, w_, x_, y_, z_);
-}
-
-template <typename T>
 Matx<T, 4, 4> DualQuat<T>::toMat() const
 {
     Matx<T, 4, 4> rot44 = getRotation().toRotMat4x4();
@@ -390,6 +381,94 @@ DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, co
     }
     DualQuat<T> v0inv1 = v0.inv() * v1;
     return v0 * v0inv1.power(t, QUAT_ASSUME_UNIT);
+}
+
+template <typename T>
+DualQuat<T> DualQuat<T>::dqblend(const DualQuat<T> &q1, const DualQuat<T> &q2, const T t, QuatAssumeType assumeUnit)
+{
+    DualQuat<T> v1(q1), v2(q2);
+    if (!assumeUnit)
+    {
+        v1 = v1.normalize();
+        v2 = v2.normalize();
+    }
+    if (v1.getRotation().dot(v2.getRotation()) < 0)
+    {
+        return ((1 - t) * v1 - t * v2).normalize();
+    }
+    return ((1 - t) * v1 + t * v2).normalize();
+}
+
+template <typename T>
+template <int cn>
+DualQuat<T> DualQuat<T>::gdqblend(const Vec<DualQuat<T>, cn> &_dualquat, const Vec<T, cn> &weight)
+{
+    Vec<DualQuat<T>, cn> dualquat(_dualquat);
+    DualQuat<T> dq_blend(0, 0, 0, 0, 0, 0, 0, 0);
+    Quat<T> q0 = dualquat[0].getRotation();
+    for (size_t i = 0; i < cn; ++i) 
+    {
+        int k = 1 ? q0.dot(dualquat[i].getRotation()) < 0 : -1;
+        dq_blend = dq_blend + dualquat[i] * k * weight[i];
+    }
+    return dq_blend.normalize();
+}
+
+
+/* template <typename T, int cn> */
+/* void dqs(const Matx<T, 3, cn> &in_vert, const Matx<T, 3 cn> &in_normals, */
+/*          Matx<T, 3, cn> &out_vert, Matx<T, 3, cn> &out_normals, */
+/*          const Vec<DualQuat<T>, cn> &dualquat, const std::vector<std::vector<T>> &weights, */
+/*          const std::vector<std::vector<int>> &joint_id) */
+template <typename T>
+void dqs(const std::vector<Vec<T, 3>> &in_vert, const std::vector<Vec<T, 3>> &in_normals,
+         std::vector<Vec<T, 3>> &out_vert, std::vector<Vec<T, 3>> &out_normals,
+         const std::vector<DualQuat<T>> &dualquat, const std::vector<std::vector<T>> &weights,
+         const std::vector<std::vector<int>> &joint_id)
+{
+    for (size_t i = 0; i < in_vert.size(); ++i)
+    {
+        DualQuat<T> dq_blend;
+        int k0 = -1;
+        const int joint_nu = weights[i].size();
+        /* (joint_nu == 0) ? (klq={1,0,0,0}) : (k0 = joint_id[i][0]); */ 
+        if (joint_nu == 0)
+        {
+            dq_blend = {1, 0, 0, 0, 0, 0, 0, 0};
+        }
+        else
+        {
+            k0 = joint_id[i][0];
+            dq_blend = dualquat[k0] * weights[i][0];
+            //dq_blend = joint_nu == 0 ? Vec<T, 8>{1, 0, 0, 0, 0, 0, 0, 0, 0} : dualquat[0] * weights[i][0];
+        }
+        Quat<T> q0 = dualquat[k0].getRotation();
+        for (int j = 1; j < joint_nu; ++j)
+        {
+            // DualQuat<T> dq = dualquat[joint_id[i][j]];
+            const T k = q0.dot(dualquat[i].getRotation()) < 0 ? -1.0 : 1.0;
+            dq_blend = dq_blend + dualquat[joint_id[i][j]] * k * weights[i][j];
+        }
+        dq_blend = dq_blend.normalize();
+        Quat<T> p = dq_blend.getRealQuat();
+        Quat<T> q = dq_blend.getDualQuat();
+        const T a0 = p.w;
+        const T ae = q.w;
+        Vec<T, 3> d0{p[1], p[2], p[3]};
+        Vec<T, 3> de{q[1], q[2], q[3]};
+        out_vert.push_back(in_vert[i] + (T)2.0 * (d0.cross(d0.cross(in_vert[i]) + in_vert[i] * a0) + de * a0 - d0 * ae + d0.cross(de)));
+        out_normals.push_back(in_normals[i] + (T)2.0 * (d0.cross(d0.cross(in_normals[i]) + a0 * in_normals[i])));
+    }
+}
+
+template <typename T>
+Vec<T, 8> DualQuat<T>::toVec() const
+{
+    Quat<T> q{1,2,3,4};
+    const T a0 = q.w;
+    Vec<T, 3> a{q[1], q[2], q[3]};
+    std::cout << a0 * a << std::endl;
+    return Vec<T, 8>(w, x, y, z, w_, x_, y_, z_);
 }
 
 } //namespace 
