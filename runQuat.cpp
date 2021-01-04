@@ -1,6 +1,14 @@
 #include <iostream>
 #include <opencv2/core/quaternion.hpp>
 using namespace cv;
+
+Mat* abc()
+{
+    Mat *a = new Mat(1,2,CV_64FC4);
+    std::cout << *a << std::endl;
+    return a;
+}
+
 int main()
 {
     Mat point = (Mat_<double> (1, 3) << 1,0,0);
@@ -35,6 +43,8 @@ int main()
         Mat points = qt.toRotMat3x3() * point;
         std::cout << points.t() << std::endl;
     }
+    Mat *a = abc();
+    std::cout << *a << std::endl;
     return 0;
 }
 

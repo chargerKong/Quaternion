@@ -27,6 +27,7 @@
 #define OPENCV_CORE_DUALQUATERNION_HPP 
 
 #include <opencv2/core/quaternion.hpp>
+#include <opencv2/core/affine.hpp>
 
 namespace cv{
 //! @addtogroup core
@@ -36,18 +37,89 @@ template <typename _Tp> class Quat;
 template <typename _Tp> std::ostream& operator<<(std::ostream&, const Quat<_Tp>&);
 
 /**
+ * Dual quaternions were introduced to describe rotation together with translation while ordinary quaternions can only describe rotation. 
+ * Dual quaternions can be used for shortest path pose interpolation, local pose optimization or volumetric deformation. More details can be found
+ * - "A beginners guide to dual-quaternions: what they are, how they work, and how to use them for 3D character hierarchies", Ben Kenwright, 2012
+ * - "Dual Quaternions", Yan-Bin Jia, 2013
+   - "Geometric Skinning with Approximate Dual Quaternion Blending", Kavan, 2008
+   - http://rodolphe-vaillant.fr/?e=29
+ 
  * Dual quaternion was introduced to describe translation and rotation while the quaternion can only
- * describe rotation. A dual quaternion can be classically represented as:
+ * describe rotation. A unit dual quaternion can be classically represented as:
  * \f[
- * \sigma = \left(r+\frac{1}{2}tr\right)
+ * \sigma = \left(r+\frac{\epsilon}{2}tr\right)
  * \f]
+ * where \f$r, t\f$ represents the rotation (ordinary unit quaternion) and translation (pure ordinary quaternion) respectively.
  *
+ * A more general dual quaternions who consist of two quaternions are usually represented in the form:
+ * \f[
+ * \sigma = p + \epsilon q
+ * \f]
+ * where the introduced dual unit \f$\epsilon\f$ satisfies \f$\epsilon^2 = \epsilon^3 =...=0\f$, and \f$p, q\f$ are all quaternions.
  *
- * To create a dual quaternion, you can use
+ * Alternatively, dual quaternions can also be interpreted as four components which are all dual numbers: 
+ * \f[
+ * \sigma = \hat{q}_w + \hat{q}_xi + \hat{q}_yj + \hat{q}_zk
+ * \f]
+ * If we set \f$\hat{q}_x, \hat{q}_y\f$ and \f$\hat{q}_z\f$ equal to 0, a dual quaternion is transformed to a dual number. see normalize().
+ * see wikipedia https://en.wikipedia.org/wiki/Dual_number.
+ *
+ * If you want to create a dual quaternion, you can use:
+ *
+ * ```
+ * using namespace cv;
+ * double angle = CV_PI;
+ *
+ * // create from eight number
+ * DualQuatd dq1(1, 2, 3, 4, 5, 6, 7, 8); //p = [1,2,3,4]. q=[5,6,7,8]
  * 
+ * // create from Vec
+ * Vec<double, 8> v{1,2,3,4,5,6,7,8};
+ * DualQuatd dq_v{v};
+ *
+ * // create from two quaternion
+ * Quatd p(1, 2, 3, 4);
+ * Quatd q(5, 6, 7, 8);
+ * DualQuatd dq2 = DualQuatd::createFromQuat(p, q);
+ *
+ * // create from an angle, an axis and a translation
+ * Vec3d axis{0, 0, 1};
+ * Quatd trans{0, 3, 4, 5};
+ * DualQuatd dq3 = DualQuatd::createFromAngleAxisTrans(angle, axis, trans);
+ *
+ * // create from a linear transformation matrix R.
+ * // see createFromMat() in detail for the form of R
+ * Matx44d R = dq3.toMat();
+ * DualQuatd dq4 = DualQuatd::createFromMat(R);
+ *
+ * // create from screw parameter.
+ * Quatd qaxis{0, 0, 0, 1}; // that is [0, axis], qaxis should be normalized.
+ * Quatd t{0, 3, 4 ,5};
+ * Quatd moment = 1.0 / 2 * (t.crossProduct(qaxis) + qaxis.crossProduct(t.crossProduct(qaxis)) * std::cos(angle / 2) / std::sin(angle / 2));
+ * double d = t.dot(qaxis);
+ * DualQuatd dq5 = DualQuatd::createFromPitch(angle, d, qaxis, moment);
+ * ```
  * 
+ * A point \f$v=(x, y, z)\f$ in form of dual quaternion is \f$[1+\epsilon v]=[1,0,0,0,0,x,y,z]\f$.
+ * The transformation of a point \f$v_1\f$ to another point \f$v_1\f$ under the dual quaternion \f$\sigma\f$ is
+ * \f[
+ * 1 + \epsilon v_2 = \sigma * (1 + \epsilon v_1) * \sigma^{\star}
+ * \f]
+ * where \f$\sigma^{\star}=p^*-\epsilon q^*\f$.
+ *
+ * A line in the Pl\f$\ddot{u}\f$cker \f$(\hat{l}, m)\f$ by the dual quaternion \f$l=\hat{l}+\epsilon m\f$.
+ * To transform a line, \f[l_2 = \sigma * l_1 * \sigma^*\f], where \f$\sigma=r+\frac{\epsilon}{2}rt\f$ and 
+ * \f$\sigma^*=p^*+\epsilon q^*\f$.
+ * 
+ * To extract the Vec<double, 8> or Vec<float, 8>, see toVec();
+ *
+ * To extract the transformation matrix, see toMat();
+ *
+ * If there are two quaternions \f$q_0, q_1\f$ are needed to interpolate, you can use sclerp():
+ * ```
+ * Quatd::sclerp(q0, q1, t)
+ * ```
  */
-// how to rotate a line and a point
 template <typename _Tp>
 class DualQuat{
     static_assert(std::is_floating_point<_Tp>::value, "Dual quaternion only make sense with type of float or double");
@@ -61,8 +133,12 @@ public:
     /**
      * @brief create from eight same type number
      */
-    DualQuat(_Tp w, _Tp x, _Tp y, _Tp z, _Tp w_, _Tp x_, _Tp y_, _Tp z_);
+    DualQuat(const _Tp w, const _Tp x, const _Tp y, const _Tp z, const _Tp w_, const _Tp x_, const _Tp y_, const _Tp z_);
     
+    /**
+     * @brief create from a vector.
+     */
+    DualQuat(const Vec<_Tp, 8> &q);
 
     _Tp w, x, y, z, w_, x_, y_, z_;
 
@@ -103,15 +179,17 @@ public:
      * @param angle rotation angle.
      * @param axis a normalized rotation axis.
      * @param translation a pure quaternion.
-     * @note axis will be normalized in this function. And translation will be applied
-     * after the rotation.
+     * @note axis will be normalized in this function. And translation is applied
+     * after the rotation. Use createFromQuat(r, r * t / 2) to create a dual quaternion
+     * which translation is applied before rotation.
      * @sa Quat
      */
-    static DualQuat<_Tp> createFromAngleAxisTrans(_Tp angle, const Vec<_Tp, 3> &axis, const Quat<_Tp> &translation);
+    static DualQuat<_Tp> createFromAngleAxisTrans(const _Tp angle, const Vec<_Tp, 3> &axis, const Quat<_Tp> &translation);
 
     /**
      * @brief Transform this dual quaternion to a linear transformation matrix \f$M\f$.
-     * Dual quaternion consists a rotation \f$r=[a,b,c,d]\f$ and a translation \f$t=[0,\Delta x,\Delta y,\Delta z]\f$. The transformation matrix \f$M\f$ has the form
+     * Dual quaternion consists a rotation \f$r=[a,b,c,d]\f$ and a translation \f$t=[\Delta x,\Delta y,\Delta z]\f$. The transformation matrix 
+     * \f$M\f$ has the form
      * \f[
      * \begin{bmatrix}
      * 1-2(e_2^2 +e_3^2) &2(e_1e_2-e_0e_3) &2(e_0e_2+e_1e_3) &\Delta x\\
@@ -135,8 +213,42 @@ public:
      * \f] 
      * where the same subscript represent the same point. The size of A should be \f$[4,n]\f$. 
      * and the same size for matrix new_A.
+     * @param _R 4x4 matrix that represents rotations and translation 
+     * @note Translation is applied after the rotation. Use createFromQuat(r, r * t / 2) to create 
+     * a dual quaternion which translation is applied before rotation.
      */
     static DualQuat<_Tp> createFromMat(InputArray _R);
+    
+    /**
+     * @brief create dual quaternion from a affine matrix. see createFromMat()
+     */
+    static DualQuat<_Tp> createFromAffine3(const Affine3<_Tp> &R);
+
+    /**
+     * @brief A dual quaternion is a vector in form of
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
+     * &= \cos\hat{\frac{\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{\theta}}{2}
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$\hat{\theta}\f$ is dual angle and \f$\overline{\hat{l}}\f$ is dual axis:
+     * \f[
+     * \hat{\theta}=\theta + \epsilon d,\\
+     * \overline{\hat{l}}= \hat{l} +\epsilon m.
+     * \f]
+     * In this representation, \f$\theta\f$ is rotation angle and \f$(\hat{l},m)\f$ is the screw axis, d is the translation distance along the axis.
+     * 
+     * @param angle rotation angle.
+     * @param d translation along the rotation axis.
+     * @param axis rotation axis represented by quaternion with w = 0.
+     * @param moment the moment of line.
+     * @note Translation is applied after the rotation. Use createFromQuat(r, r * t / 2) to create 
+     * a dual quaternion which translation is applied before rotation.
+     */
+    static DualQuat<_Tp> createFromPitch(const _Tp angle, const _Tp d, const Quat<_Tp> &axis, const Quat<_Tp> &moment);
     
     /**
      * @brief return a quaternion which represent the real part of dual quaternion.
@@ -174,7 +286,7 @@ public:
      * @brief return the translation in pure quaternion form.
      * The rotation \f$r\f$ in this dual quaternion \f$\sigma\f$ is applied before translation \f$\boldsymbol{v}t\f$,
      * which has the form
-     * \f[\begin{eqaution}
+     * \f[\begin{equation}
      * \begin{split}
      * \sigma &= p + \epsilon q \\
      *        &= r + \frac{\epsilon}{2}\boldsymbol{t}r
@@ -182,6 +294,9 @@ public:
      * \end{equation}.\f]
      * Thus, the translation can be obtained as:
      * \f[\boldsymbol{v} = 2 * q * p^*.\f]
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
+     * @note this dual quaternion's translation is applied after the rotation.
      */
     Quat<_Tp> getTranslation(QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
@@ -248,31 +363,19 @@ public:
      * \f[\sigma^{-1} = \frac{\sigma^*}{||\sigma||^2}, \f]
      * or equivalentlly,
      * \f[\sigma^{-1} = p^{-1} - \epsilon p^{-1}qp^{-1}.\f]
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
      */
     DualQuat<_Tp> inv(QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
     /**
-     * @brief 
+     * @brief return the dot product of two dual quaternion
+     * @param p other dual quaternion.
      */
     _Tp dot(DualQuat<_Tp> p) const;
     
     /**
-     * @brief A dual quaternion is a vector in form of
-     * \f[
-     * \begin{equation}
-     * \begin{split}
-     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
-     * &= \cos\hat{\frac{\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{\theta}}{2}
-     * \end{split}
-     * \end{equation}
-     * \f]
-     * where \f$\hat{\theta}\f$ is dual angle and \f$\overline{\hat{l}}\f$ is dual axis:
-     * \f[
-     * \hat{\theta}=\theta + \epsilon d,\\
-     * \overline{\hat{l}}= \hat{l} +\epsilon m.
-     * \f]
-     * In this representation, \f$\theta\f$ is rotation angle and \f$(\hat{l},m)\f$ is the screw axis, d is the translation distance along the axis.
-     * 
+    * 
      * A convenience form of power function of dual quaternion can be expressed as:
      * \f[
      * \sigma^t = \cos\hat{\frac{t\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{t\theta}}{2}
@@ -282,9 +385,8 @@ public:
      * @param t index of power function.
      * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
      * and this function will save some computations.
-     * 
      */
-    DualQuat<_Tp> power(const _Tp t, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
+    DualQuat<_Tp> power(const _Tp t, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const; 
     
     /**
      * @brief It returns the value of \f$p^q\f$ where p and q are dual quaternion.
@@ -297,7 +399,7 @@ public:
      * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
      * and this function will save some computations.
      */
-    DualQuat<_Tp> power(const DualQuat<_Tp>& q, const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
+    DualQuat<_Tp> power(const DualQuat<_Tp>& q, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
     /**
      * @brief A dual quaternion is a vector in form of 
@@ -353,32 +455,482 @@ public:
      * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion  assume to be a unit quaternion 
      * and this function will save some computations.
      */ 
-    DualQuat<_Tp> log(const QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
+    DualQuat<_Tp> log(QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT) const;
 
-    Matx<_Tp, 4, 4>  toMat() const; //name may not proper
+    /**
+     * @brief Transform dual quaternion to a vector.
+     */
+    Vec<_Tp, 8> toVec() const;
+
+    /**
+     * @brief Transform dual quaternion to a linear transformation matrix
+     * the form of matrix, see createFromMat().
+     */
+    Matx<_Tp, 4, 4> toMat() const; //name may not proper
     
-    static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
-    
-    bool operator==(const DualQuat<_Tp>&) const;
-    DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
+    /**
+     * @brief Transform dual quaternion to a Affine3 transformation matrix.
+     */
+    Affine3<_Tp> toAffine3() const;
+    /**
+     * @brief The screw linear interpolation(ScLERP) is an extension of spherical linear interpolation of quaternion.
+     * If \f$\sigma_1\f$ and \f$\sigma_2\f$ are two dual quaternion representing the initial and final pose.
+     * The interpolation of ScLERP function can be defined as:
+     * \f[
+     * ScLERP(t;\sigma_1,\sigma_2) = \sigma_1 * (\sigma_1^{-1} * \sigma_2)^t, t\in[0,1]
+     * \f]
+     * 
+     * @param q1 a dual quaternion represents a initial pose.
+     * @param q2 a dual quaternion represents a final pose.
+     * @param t interpolation parameter
+     * @param directChange if true, it will always return the shortest path.
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion  assume to be a unit quaternion 
+     * and this function will save some computations.
+     *
+     *
+     * For example
+     * ```
+     * double angle1 = CV_PI / 2;
+     * Vec3d axis{0, 0, 1};
+     * Vec3d t(0, 0, 3);
+     * DualQuatd initial = DualQuatd::createFromAngleAxisTrans(angle1, axis, t);
+     * double angle2 = CV_PI;
+     * DualQuatd final = DualQuatd::createFromAngleAxisTrans(angle2, axis, t);
+     * DualQuatd inter = DualQuatd::sclerp(initial, final, 0.5);
+     * ```
+     */
+    static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, 
+                                bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+    /**
+     * The method of Dual quaternion Linear Blending is to compute a transformation between dual quaternion 
+     * \f$q_1\f$ and \f$q_2\f$ and can be defined as:
+     * \f[
+     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,{\boldsymbol{q}}_2)=
+     * \frac{(1-t){\boldsymbol{q}}_1+t{\boldsymbol{q}}_2}{||(1-t){\boldsymbol{q}}_1+t{\boldsymbol{q}}_2||}.
+     * \f]
+     * where \f$q_1\f$ and \f$q_2\f$ are unit dual quaternions representing the input transformations. 
+     * If you want to use DLB that works for more than two rigid transformations, see gdlblend()
+     *
+     * @param q1 a unit dual quaternion representing the input transformations.
+     * @param q2 a unit dual quaternion representing the input transformations.
+     * @param t  parameter $t\in[0,1]$.
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
+     *
+     * @sa gdlblend
+     *
+     */
+    static DualQuat<_Tp> dlblend(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, 
+                                 QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+
+    /**
+     * The generalized Dual quaternion Linear Blending works for more than two rigid transformations. 
+     * If these transformations are expressed as unit dual quaternions $q_1,...,q_n$ with convex weights 
+     * $w = (w_1,...,w_n)$, the generalized DLB is simply
+     * \f[
+     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,...,{\boldsymbol{q}}_n)=\frac{w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n}
+     * {||w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n||}.
+     * \f]
+     * @param vector of dual quaternions
+     * @param vector of weights. \f$\sum_0^n w_{i} = 1\f$ and \f$w_i>0\f$
+     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
+     * and this function will save some computations.
+     *
+     */
+    template <int cn>
+    static DualQuat<_Tp> gdlblend(const Vec<DualQuat<_Tp>, cn> &dualquat, const Vec<_Tp, cn> &weight, 
+                                  QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+
+    /**
+     * This function is a skinning algorithm to deform the mesh with dual quaternion skinning(DQS) deformer with reference 
+     * to the paper "Geometric Skinning with Approximate Dual Quaternion Blending". We use the generalized Dual quaternion
+     * Linear Blending to compute the deformed position:
+     * \f[
+     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,...,{\boldsymbol{q}}_n)=
+     * \frac{w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n}{||w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n||}.
+     * \f]
+     * And it will alwmesays choose the shortest rotation path. Compared with  Linear Blending Skinning(LBS), 
+     * the DQS can avoid the loss of volume and have a relatively better performance on rudualn-time. 
+     *
+     * @param in_vert vector of vertices at original position
+     * @param in_normals vector of mesh normals 
+     * @param out_vert deformed vertices transformed by dual quaternions
+     * @param out_normals deformed mesh normals transformed by dual quaternions
+     * @param dualquat vector of unit dual quaternions for each joint 
+     * @param weights vector of influence weights for each vertex. All weights that influence one vertex should 
+     * satisfy \f$\sum_0^n w_{i} = 1\f$ and \f$w_i>0\f$
+     * @param joints_id vector of joints id that influence one vertex for each vertex. (same order as weights). 
+     * The ID here represents the order of dual quaternion, So the joints id should be non-negative.
+     * 
+     * @sa gdlblend
+     *
+     */
+    static void dqs(const std::vector<Vec<_Tp, 3>> &in_vert, 
+                    const std::vector<Vec<_Tp, 3>> &in_normals,
+                    std::vector<Vec<_Tp, 3>> &out_vert, 
+                    std::vector<Vec<_Tp, 3>> &out_normals,
+                    const std::vector<DualQuat<_Tp>> &dualquat, 
+                    const std::vector<std::vector<_Tp>> &weight,
+                    const std::vector<std::vector<int>> &joint_id,
+                    QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+
+    /**
+     * @brief Return opposite dual quaternion \f$-p\f$
+     * which satisfies \f$p + (-p) = 0.\f$
+     *
+     * For example
+     * ```
+     * DualQuatd q{1, 2, 3, 4, 5, 6, 7, 8};
+     * std::cout << -q << std::endl; // [-1, -2, -3, -4, -5, -6, -7, -8]
+     * ```
+     */
     DualQuat<_Tp> operator-() const;
+    
+    /**
+     * @brief return true if two dual quaternions p and q are nearly equal, i.e. when the absolute
+     * value of each \f$p_i\f$ and \f$q_i\f$ is less than CV_DUAL_QUAT_EPS.
+     */
+    bool operator==(const DualQuat<_Tp>&) const;
+
+     /**
+     * @brief Subtraction operator of two dual quaternions p and q.
+     * It returns a new dual quaternion that each value is the sum of \f$p_i\f$ and \f$-q_i\f$.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * std::cout << p - q << std::endl; //[-4, -4, -4, -4, 4, -4, -4, -4]
+     * ```
+     */
+    DualQuat<_Tp> operator-(const DualQuat<_Tp>&) const;
+    
+    /**
+     * @brief Subtraction assignment operator of two dual quaternions p and q.
+     * It subtracts right operand from the left operand and assign the result to left operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * p -= q; // equivalent to p = p - q
+     * std::cout << p << std::endl; //[-4, -4, -4, -4, 4, -4, -4, -4]
+     *
+     * ```
+     */
+    DualQuat<_Tp>& operator-=(const DualQuat<_Tp>&);
+
+    /**
+     * @brief Addition operator of two dual quaternions p and q.
+     * It returns a new dual quaternion that each value is the sum of \f$p_i\f$ and \f$q_i\f$.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * std::cout << p + q << std::endl; //[6, 8, 10, 12, 14, 16, 18, 20]
+     * ```
+     */
     DualQuat<_Tp> operator+(const DualQuat<_Tp>&) const;
+    /**
+     * @brief Addition assignment operator of two dual quaternions p and q.
+     * It adds right operand to the left operand and assign the result to left operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * p += q; // equivalent to p = p + q
+     * std::cout << p << std::endl; //[6, 8, 10, 12, 14, 16, 18, 20]
+     *
+     * ```
+     */
+    DualQuat<_Tp>& operator+=(const DualQuat<_Tp>&);
+
+    /**
+     * @brief Multiplication assignment operator of two quaternions.
+     * It multiplies right operand with the left operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion multiplication:
+     * The dual quaternion can be written as an ordered pair of quaternions [A, B]. Thus
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p * q &= [A, B][C, D]]\\
+     * &=[A*C, A*D + B*C]
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * p *= q;
+     * std::cout << p << std::endl; //[-60, 12, 30, 24, -216, 80, 124, 120]
+     * ```
+     */
+    DualQuat<_Tp>& operator*=(const DualQuat<_Tp>&);
+   
+    /**
+     * @brief Multiplication assignment operator of a quaternions and a scalar.
+     * It multiplies right operand with the left operand and assign the result to left operand.     *
+     * 
+     * Rule of dual quaternion multiplication with a scalar:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p * s &= [w, x, y, z, w_, x_, y_, z_] * s\\
+     * &=[w * s, x * s, y * s, z * s, w_ * s, x_ * s, y_ * s, z_ * s].
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double s = 2.0;
+     * p *= s;
+     * std::cout << p << std::endl; //[2, 4, 6, 8, 10, 12, 14, 16]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    DualQuat<_Tp> operator*=(const _Tp a);
+    
+
+    /**
+     * @brief Multiplication operator of two dual quaternions q and p.
+     * Multiplies values on either side of the operator.
+     *
+     * Rule of dual quaternion multiplication:
+     * The dual quaternion can be written as an ordered pair of quaternions [A, B]. Thus
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p * q &= [A, B][C, D]]\\
+     * &=[A*C, A*D + B*C]
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * std::cout << p * q << std::endl; //[-60, 12, 30, 24, -216, 80, 124, 120]
+     * ```
+     */
     DualQuat<_Tp> operator*(const DualQuat<_Tp>&) const;
     
+    /**
+     * @brief Division operator of a dual quaternions and a scalar.
+     * It divides left operand with the right operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion division with a scalar:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p / s &= [w, x, y, z, w_, x_, y_, z_] / s\\
+     * &=[w/s, x/s, y/s, z/s, w_/s, x_/s, y_/s, z_/s].
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double s = 2.0;
+     * p /= s; // equivalent to p = p / s
+     * std::cout << p << std::endl; //[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]
+     * ```
+     * @note the type of scalar should be equal to this dual quaternion.
+     */
+    DualQuat<_Tp> operator/(const _Tp a) const;
+    
+    /**
+     * @brief Division operator of two dual quaternions p and q.
+     * Divides left hand operand by right hand operand.
+     *
+     * Rule of dual quaternion division with a dual quaternion:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p / q &= p * q.inv()\\
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * std::cout << p / q << std::endl; // equivalent to p * q.inv()
+     * ```
+     */
+    DualQuat<_Tp> operator/(const DualQuat<_Tp>&) const;
+    
+    /**
+     * @brief Division assignment operator of two dual quaternions p and q;
+     * It divides left operand with the right operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion division with a quaternion:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p / q&= p * q.inv()\\
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * DualQuatd q{5, 6, 7, 8, 9, 10, 11, 12};
+     * p /= q; // equivalent to p = p * q.inv()
+     * std::cout << p << std::endl;
+     * ```
+     */
+    DualQuat<_Tp>& operator/=(const DualQuat<_Tp>&);
+
+    /**
+     * @brief Division assignment operator of a dual quaternions and a scalar.
+     * It divides left operand with the right operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion division with a scalar:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p / s &= [w, x, y, z, w_, x_, y_ ,z_] / s\\
+     * &=[w / s, x / s, y / s, z / s, w_ / s, x_ / s, y_ / s, z_ / s].
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double s = 2.0;;
+     * p /= s; // equivalent to p = p / s
+     * std::cout << p << std::endl; //[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    Quat<_Tp>& operator/=(const _Tp s);
+    
+    /**
+     * @brief Addition operator of a scalar and a dual quaternions.
+     * Adds right hand operand from left hand operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double scalar = 2.0;
+     * std::cout << scalar + p << std::endl; //[3.0, 2, 3, 4, 5, 6, 7, 8]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    template <typename T>
+    friend DualQuat<T> cv::operator+(const T s, const DualQuat<T>&);
+
+    /**
+     * @brief Addition operator of a dual quaternions and a scalar.
+     * Adds right hand operand from left hand operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double scalar = 2.0;
+     * std::cout << p + scalar << std::endl; //[3.0, 2, 3, 4, 5, 6, 7, 8]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    template <typename T>
+    friend DualQuat<T> cv::operator+(const DualQuat<T>&, const T s);
+    
+    /**
+     * @brief Multiplication operator of a scalar and a dual quaternions.
+     * It multiplies right operand with the left operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion multiplication with a scalar:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p * s &= [w, x, y, z, w_, x_, y_, z_] * s\\
+     * &=[w * s, x * s, y * s, z * s, w_ * s, x_ * s, y_ * s, z_ * s].
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double s = 2.0;
+     * std::cout << s * p << std::endl; //[2, 4, 6, 8, 10, 12, 14, 16]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
     template <typename T>
     friend DualQuat<T> cv::operator*(const T a, const DualQuat<T>&);
     
+    /**
+     * @brief Subtraction operator of a dual quaternion and a scalar.
+     * Subtracts right hand operand from left hand operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double scalar = 2.0;
+     * std::cout << p - scalar << std::endl; //[-1, 2, 3, 4, 5, 6, 7, 8]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    template <typename T>
+    friend DualQuat<T> cv::operator-(const DualQuat<T>&, const T s);
+
+    /**
+     * @brief Subtraction operator of a scalar and a dual quaternions.
+     * Subtracts right hand operand from left hand operand.
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double scalar = 2.0;
+     * std::cout << scalar - p << std::endl; //[1.0, -2, -3, -4, -5, -6, -7, -8]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
+    template <typename T>
+    friend DualQuat<T> cv::operator-(const T s, const DualQuat<T>&);
+    
+    /**
+     * @brief Multiplication operator of a dual quaternions and a scalar.
+     * It multiplies right operand with the left operand and assign the result to left operand.
+     *
+     * Rule of dual quaternion multiplication with a scalar:
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * p * s &= [w, x, y, z, w_, x_, y_, z_] * s\\
+     * &=[w * s, x * s, y * s, z * s, w_ * s, x_ * s, y_ * s, z_ * s].
+     * \end{split}
+     * \end{equation}
+     * \f]
+     *
+     * For example
+     * ```
+     * DualQuatd p{1, 2, 3, 4, 5, 6, 7, 8};
+     * double s = 2.0;
+     * std::cout << p * s << std::endl; //[2, 4, 6, 8, 10, 12, 14, 16]
+     * ```
+     * @note the type of scalar should be equal to the dual quaternion.
+     */
     template <typename T>
     friend DualQuat<T> cv::operator*(const DualQuat<T>&, const T a);
     
-    DualQuat<_Tp> operator/(const _Tp a) const;
-    DualQuat<_Tp> operator/(const DualQuat<_Tp>&) const;
 
     template <typename S>
     friend std::ostream& cv::operator<<(std::ostream&, const DualQuat<S>&);
 
-private:
-    static DualQuat<_Tp> createFromPitch(const _Tp angle, const _Tp d, const Quat<_Tp> &axis, const Quat<_Tp> &moment);
 };
 
 
