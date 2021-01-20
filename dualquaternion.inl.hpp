@@ -302,20 +302,39 @@ std::ostream & operator<<(std::ostream &os, const DualQuat<T> &q)
     return os;
 }
 
-template <typename T>
-DualQuat<T> DualQuat<T>::exp() const
+template <typename _Tp>
+Matx<_Tp, 4, 4> DualQuat<_Tp>::Jacobian(const Quat<_Tp> &q) const
 {
-    DualQuat<T> v(0, x, y, z, 0, x_, y_, z_);
-    DualQuat<T> normV = v.norm();
-    DualQuat<T> sin_normV(std::sin(normV.w), 0, 0, 0, normV.w_ * std::cos(normV.w), 0, 0, 0);
-    DualQuat<T> cos_normV(std::cos(normV.w), 0, 0, 0, -normV.w_ * std::sin(normV.w), 0, 0, 0);
-    DualQuat<T> exp_w(std::exp(w), 0, 0, 0, w_ * std::exp(w), 0, 0, 0);
-    if (normV.w < CV_DUAL_QUAT_EPS)
-    {
-        return exp_w * (cos_normV + v);
-    }
-    DualQuat<T> k = sin_normV / normV;
-    return exp_w * (cos_normV + v * k);
+    _Tp vvT = q.x * q.x + q.y * q.y + q.z * q.z;
+    _Tp nv = std::sqrt(vvT);
+    _Tp sinc_nv = abs(nv) < CV_DUAL_QUAT_EPS ? 1 - nv * nv / 6 : std::sin(nv) / nv; 
+    _Tp csiii_nv = abs(nv) < CV_DUAL_QUAT_EPS ? -(_Tp)1.0 / 3 : (std::cos(nv) - sinc_nv) / nv / nv; 
+    Matx<_Tp, 4, 4> J_exp_quat {
+        std::cos(nv), -sinc_nv * x,  -sinc_nv * y,  -sinc_nv * z,
+        sinc_nv * x, csiii_nv * x * x + sinc_nv, csiii_nv * x * y, csiii_nv * x * z,
+        sinc_nv * y, csiii_nv * y * x, csiii_nv * y * y + sinc_nv, csiii_nv * y * z,
+        sinc_nv * z, csiii_nv * z * x, csiii_nv * z * y, csiii_nv * z * z + sinc_nv
+    };
+    return std::exp(q.w) * J_exp_quat;
+}
+
+template <typename _Tp>
+DualQuat<_Tp> DualQuat<_Tp>::exp() const
+{
+    /*
+    _Tp vvT = x * x + y * y + z * z;
+    _Tp nv = std::sqrt(vvT);
+    _Tp sinc_nv = abs(nv) < CV_DUAL_QUAT_EPS ? 1 - nv * nv / 6 : std::sin(nv) / nv; 
+    _Tp csiii_nv = abs(nv) < CV_DUAL_QUAT_EPS ? -(_Tp)1.0 / 3 : (std::cos(nv) - sinc_nv) / nv / nv; 
+    Matx<_Tp, 4, 4> J_exp_quat {
+        std::cos(nv), -sinc_nv * x,  -sinc_nv * y,  -sinc_nv * z,
+        sinc_nv * x, csiii_nv * x * x + sinc_nv, csiii_nv * x * y, csiii_nv * x * z,
+        sinc_nv * y, csiii_nv * y * x, csiii_nv * y * y + sinc_nv, csiii_nv * y * z,
+        sinc_nv * z, csiii_nv * z * x, csiii_nv * z * y, csiii_nv * z * z + sinc_nv
+    };
+    */
+    Quat<_Tp> p = getRealQuat();
+    return createFromQuat(getRealQuat().exp(), Quat<_Tp>(Jacobian(p) * getDualQuat().toVec()));
 }
 
 template <typename T>
@@ -441,16 +460,18 @@ DualQuat<T> DualQuat<T>::gdlblend(const Vec<DualQuat<T>, cn> &_dualquat, const V
 template <typename T>
 void dqs(const std::vector<Vec<T, 3>> &in_vert, const std::vector<Vec<T, 3>> &in_normals,
          std::vector<Vec<T, 3>> &out_vert, std::vector<Vec<T, 3>> &out_normals,
-         const std::vector<DualQuat<T>> &dualquat, const std::vector<std::vector<T>> &weights,
+         const std::vector<DualQuat<T>> &_dualquat, const std::vector<std::vector<T>> &weights,
          const std::vector<std::vector<int>> &joint_id, QuatAssumeType assumeUnit)
 {
-    /* if (!assumeUnit) */
-    /* { */
-    /*     for (auto &dq : dualquat) */
-    /*     { */
-    /*         dq = dq.normalize(); */
-    /*     } */
-    /* } */
+    std::vector<DualQuat<T>> dualquat(_dualquat);
+    Quat<T> q0;
+    if (!assumeUnit)
+    {
+        for (auto &dq : dualquat)
+        {
+            dq = dq.normalize();
+        }
+    }
     for (size_t i = 0; i < in_vert.size(); ++i)
     {
         DualQuat<T> dq_blend;
@@ -465,8 +486,8 @@ void dqs(const std::vector<Vec<T, 3>> &in_vert, const std::vector<Vec<T, 3>> &in
         {
             k0 = joint_id[i][0];
             dq_blend = dualquat[k0] * weights[i][0];
+            q0 = dualquat[k0].getRotation();
         }
-        Quat<T> q0 = dualquat[k0].getRotation();
         for (int j = 1; j < joint_nu; ++j)
         {
             const T k = q0.dot(dualquat[i].getRotation()) < 0 ? -1.0 : 1.0;

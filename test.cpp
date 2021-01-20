@@ -114,15 +114,8 @@ TEST_F(DualQuatTest, basic_ops){
     };
     // EXPECT_MAT_NEAR(R1 * point,  Matx41d{0, 3, 5, 1});
     Affine3d afd = dq2.toAffine3();
-    std::cout << afd.translation() << std::endl;
-    std::cout << dq2.getTranslation() << std::endl;
-    
     EXPECT_ANY_THROW(dqAllZero.toAffine3());
-    
-    std::cout << dq1.toAffine3().translation() << std::endl;
-    std::cout << dq1.getTranslation() << std::endl;
-    
-
+    EXPECT_EQ(dq1.tlog().exp(), dq1);
 }
 
 
@@ -140,59 +133,43 @@ TEST_F(DualQuatTest, dqs) {
     double angle2 = CV_PI;
     Vec3d axis2(0, 0, 1);
     Vec3d axis1(1, 1, 1);
+    Quatd tran1(0, 2, 3, 4);
+    Quatd tran2(0, 0, 0, 0);
     Quatd q1 = Quatd::createFromAngleAxis(angle1, axis1);
     Quatd q2 = Quatd::createFromAngleAxis(angle2,axis2);
     Quatd q3 = Quatd::createFromAngleAxis(angle1,axis2);
-    DualQuatd dq1 = DualQuatd::createFromQuat(q1, q2);
-    DualQuatd dq2 = DualQuatd::createFromQuat(q1, q3);
-    DualQuatd dq3 = DualQuatd::createFromQuat(q2, q3);
+    DualQuatd dq1 = DualQuatd::createFromAngleAxisTrans(angle1, axis1, tran1);
+    DualQuatd dq2 = DualQuatd::createFromAngleAxisTrans(angle2, axis2, tran2);
+    DualQuatd dq3 = DualQuatd::createFromAngleAxisTrans(angle1, axis2, tran1);
     std::vector<DualQuatd> blend{dq1, dq2, dq3};
     std::vector< std::vector<double> > weights{std::vector<double>{0.1,0.9}, std::vector<double>{}, std::vector<double>{0.5,0.3,0.2}};
     std::vector < std::vector<int> > id{std::vector<int>{0,2}, std::vector<int>{}, std::vector<int>{2,1,0}};
-    dqs(origin, normal, out, normal_out, blend, weights, id, QUAT_ASSUME_UNIT);
-    Mat R_nor(normal_out);
-    std::cout << R_nor << std::endl;
-    EXPECT_NEAR(normal_out[0][0], -1.0378232, 1e-6);
-    EXPECT_NEAR(normal_out[0][1], -0.75291812, 1e-6);
-    EXPECT_NEAR(normal_out[0][2], 1.1644901, 1e-6);
-    EXPECT_NEAR(normal_out[1][0], 2, 1e-6);
-    EXPECT_NEAR(normal_out[1][1], 1, 1e-6);
-    EXPECT_NEAR(normal_out[1][2], 3, 1e-6);
-    EXPECT_NEAR(normal_out[2][0], 0.13559961, 1e-6);
-    EXPECT_NEAR(normal_out[2][1], 0.38203812, 1e-6);
-    EXPECT_NEAR(normal_out[2][2], 3.7196317, 1e-6);
-
-    EXPECT_NEAR(out[0][0], -1.0286849, 1e-6);
-    EXPECT_NEAR(out[0][1], -0.8783685, 1e-6);
-    EXPECT_NEAR(out[0][2], -0.059182048, 1e-6);
-    EXPECT_NEAR(out[1][0], 2, 1e-6);
-    EXPECT_NEAR(out[1][1], 1, 1e-6);
-    EXPECT_NEAR(out[1][2], 3, 1e-6);
-    EXPECT_NEAR(out[2][0], 0.25155878, 1e-6);
-    EXPECT_NEAR(out[2][1], -0.38988581, 1e-6);
-    EXPECT_NEAR(out[2][2], 3.3571897, 1e-6);
+    dqs(origin, normal, out, normal_out, blend, weights, id, QUAT_ASSUME_NOT_UNIT);
+    for (size_t i = 0; i < 3; ++i)
+    {
+        std::cout << axis1[i] << std::endl;
+    }
 }
-
 /* TEST_F(DualQuatTest, abc){ */
-/*     double angle1 = CV_PI / 2; */
-/*     Vec3d axis{0, 0, 1}; */
-/*     t(0, 0, 0, 3); */
-/*     DualQuatd initial = DualQuatd::createFromAngleAxisTrans(angle1, axis, t); */
+/*     DualQuatd dlb; */
+/*     DualQuatd p(1,0,0,0,0,1,0,0); */
+    
+/*     double angle1 = 2 * CV_PI / 2.0; */
 /*     double angle2 = CV_PI; */
-/*     DualQuatd final = DualQuatd::createFromAngleAxisTrans(angle2, axis, t); */
-/*     DualQuatd inter = DualQuatd::sclerp(initial, final, 0.5); */
 
-/*     DualQuatd c1{1,2,3,4,5,6,7,8}; */
-/*     DualQuatd c2{5,6,7,8,9,10,11,12}; */
-/*     std::cout << c1 * c2 << std::endl; */
-
-/*     DualQuatd dq22 = dqIdentity * 2.0; */
-/*     std::cout << dq22 * dq22.inv()<< std::endl; */
-/*     std::cout << dq22 * DualQuatd::createFromQuat(dq22.getRealQuat().inv(), -dq22.getRealQuat().inv() * dq22.getDualQuat() * dq22.getRealQuat().inv()) << std::endl; */
-/*     std::cout << dq1.norm() * DualQuatd::createFromQuat(dq1.getRotation(), dq1.getTranslation() * dq1.getRotation() / 2) << std::endl; */
-
-
-/*     //Mat p = (Mat_ <double>(2, 3) << 1,0,0,1,0,1); */
+/*     Vec3d axis2(0, 0, 1); */
+/*     Vec3d axis1(1, 1, 1); */
+/*     Quatd tran1(0, 2, 3, 4); */
+/*     Quatd tran2(0, 0 ,0 ,0); */
+    
+/*     DualQuatd dq1 = DualQuatd::createFromAngleAxisTrans(angle1, axis1, tran1); */
+    
+/*     for (size_t t = 0; t <= 20; ++t) */
+/*     { */
+/*         dlb = DualQuatd::dlblend(dqIdentity, dq2, 1.0 * t / 20); */
+/*         DualQuatd dlb_conj = DualQuatd::createFromQuat(dlb.getRealQuat().conjugate(), -dlb.getDualQuat().conjugate()); */
+/*         //std::cout << dlb * p * dlb_conj << std::endl; */
+/*     } */
 /*     //p = p.t(); */
 /*     //dot(trans, trans); */
 /* } */

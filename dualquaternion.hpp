@@ -769,6 +769,8 @@ public:
      */
     DualQuat<_Tp> operator/(const DualQuat<_Tp>&) const;
     
+
+    Matx<_Tp, 4, 4> Jacobian(const Quat<_Tp> &q) const;
     /**
      * @brief Division assignment operator of two dual quaternions p and q;
      * It divides left operand with the right operand and assign the result to left operand.
@@ -931,7 +933,109 @@ public:
     template <typename S>
     friend std::ostream& cv::operator<<(std::ostream&, const DualQuat<S>&);
 
+    /*
+    DualQuat<_Tp> tlog() {
+        Quat<_Tp> q(getRealQuat().log());
+        Matx<_Tp, 4, 4> j = Jacobian(q);
+        Quat<_Tp> dual = Quat<_Tp>(j.inv() * getDualQuat().toVec());
+        std::cout << "dual: " << dual << std::endl;
+        Quat<_Tp> dual1 = Quat<_Tp>(j.solve(getDualQuat().toVec() ,DECOMP_SVD));
+        std::cout << "dual_solve: " << dual1 << std::endl;
+        return createFromQuat(q, dual);
+    }*/
+Matx<_Tp, 4, 4> Jacob(const Quat<_Tp> &q) const
+{
+    _Tp vvT = q.x * q.x + q.y * q.y + q.z * q.z;
+    _Tp nv = std::sqrt(vvT);
+    _Tp sinc_nv = abs(nv) < CV_DUAL_QUAT_EPS ? 1 - nv * nv / 6 : std::sin(nv) / nv; 
+    std::cout << "sinc_nv" << sinc_nv << std::endl;
+    _Tp csiii_nv = abs(nv) < CV_DUAL_QUAT_EPS ? -(_Tp)1.0 / 3 : (std::cos(nv) - sinc_nv) / nv / nv; 
+    std::cout << "csiii_nv" << csiii_nv << std::endl;
+    Matx<_Tp, 4, 4> J_exp_quat {
+        std::cos(nv), -sinc_nv * q.x,  -sinc_nv * q.y,  -sinc_nv * q.z,
+        sinc_nv * q.x, csiii_nv * q.x * q.x + sinc_nv, csiii_nv * q.x * q.y, csiii_nv * q.x * q.z,
+        sinc_nv * q.y, csiii_nv * q.y * q.x, csiii_nv * q.y * q.y + sinc_nv, csiii_nv * q.y * q.z,
+        sinc_nv * q.z, csiii_nv * q.z * q.x, csiii_nv * q.z * q.y, csiii_nv * q.z * q.z + sinc_nv
+    };
+    return std::exp(q.w) * J_exp_quat;
+}
+
+    DualQuat<_Tp> tlog() {
+        Quat<_Tp> q = getRealQuat().log();
+        Matx<_Tp, 4, 4> j = Jacob(q);
+        Matx<_Tp, 4, 3> jq = jExpRogArg(Vec<_Tp, 3>(q[1], q[2], q[3]));
+        
+        Vec<_Tp, 4> t = getDualQuat().toVec();
+        Vec<_Tp, 3> dvec{t[1], t[2], t[3]};
+        
+        Vec3f ldvec = jq.solve(t, DECOMP_SVD);
+        Vec4f ldvec_m = j.solve(t, DECOMP_SVD);
+        
+        Quat<_Tp> ldvec_my(ldvec_m);
+        std::cout << "ldvec_m" << ldvec_my << std::endl;
+        Quat<_Tp> ld(0, ldvec[0], ldvec[1], ldvec[2]);
+        std::cout << "ld" << ld << std::endl;
+        return createFromQuat(q, ldvec_my);
+    }
 };
+
+inline float sinc(float x)
+{
+    if (abs(x) < 0.01f)
+        return 1.f - x * x / 6.f;
+    else
+        return std::sin(x) / x;
+            
+}
+inline float csiii(float x)
+{
+//even better up to abs(x)=0.1: -1/3 + x**2/30
+    if (abs(x) < 0.01f)
+        return -1.f / 3.f;
+    else
+        return (std::cos(x) - std::sin(x) / x) / (x * x);
+                        
+}
+
+template<typename _Tp, int m, int n, int k> static inline
+Matx<_Tp, m + k, n> concatVert(const Matx<_Tp, m, n>& a, const Matx<_Tp, k, n>& b)
+{
+    Matx<_Tp, m + k, n> res;
+    for (int i = 0; i < m; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            res(i, j) = a(i, j);
+
+        }
+
+    }
+    for (int i = 0; i < k; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            res(m + i, j) = b(i, j);
+
+        }
+
+    }
+    return res;
+}
+inline Matx43f jExpRogArg(Vec3f er)
+{ 
+    float normv = norm(er);
+    float sincv = sinc(normv);
+    
+    Vec3f up = -er * sincv;
+    Matx33f I3 = Matx33f::eye();
+    Matx33f m = I3 * sincv + er * er.t() * csiii(normv);
+    std::cout << "up:true" << up << std::endl;
+    std::cout << "csiii_true" << csiii(normv) << std::endl;
+    std::cout << "true:" << m << std::endl;
+    return concatVert(up.t(), m);                   
+}
+
+
 
 
 using DualQuatd = DualQuat<double>;
