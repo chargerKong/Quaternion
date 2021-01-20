@@ -415,7 +415,7 @@ DualQuat<T> DualQuat<T>::sclerp(const DualQuat<T> &q0, const DualQuat<T> &q1, co
 }
 
 template <typename T>
-DualQuat<T> DualQuat<T>::dlblend(const DualQuat<T> &q1, const DualQuat<T> &q2, const T t, QuatAssumeType assumeUnit)
+DualQuat<T> DualQuat<T>::dqblend(const DualQuat<T> &q1, const DualQuat<T> &q2, const T t, QuatAssumeType assumeUnit)
 {
     DualQuat<T> v1(q1), v2(q2);
     if (!assumeUnit)
@@ -432,20 +432,14 @@ DualQuat<T> DualQuat<T>::dlblend(const DualQuat<T> &q1, const DualQuat<T> &q2, c
 
 template <typename T>
 template <int cn>
-DualQuat<T> DualQuat<T>::gdlblend(const Vec<DualQuat<T>, cn> &_dualquat, const Vec<T, cn> &weight, QuatAssumeType assumeUnit)
+DualQuat<T> DualQuat<T>::gdqblend(const Vec<DualQuat<T>, cn> &_dualquat, const Vec<T, cn> &weight)
 {
     Vec<DualQuat<T>, cn> dualquat(_dualquat);
-    if (!assumeUnit)
-    {
-        for (auto &dq : dualquat){
-            dq = dq.normalize();
-        }
-    }
     DualQuat<T> dq_blend(0, 0, 0, 0, 0, 0, 0, 0);
     Quat<T> q0 = dualquat[0].getRotation();
-    for (int i = 0; i < cn; ++i) 
+    for (size_t i = 0; i < cn; ++i) 
     {
-        int k = q0.dot(dualquat[i].getRotation()) < 0 ? -1: 1;
+        int k = 1 ? q0.dot(dualquat[i].getRotation()) < 0 : -1;
         dq_blend = dq_blend + dualquat[i] * k * weight[i];
     }
     return dq_blend.normalize();
@@ -460,18 +454,9 @@ DualQuat<T> DualQuat<T>::gdlblend(const Vec<DualQuat<T>, cn> &_dualquat, const V
 template <typename T>
 void dqs(const std::vector<Vec<T, 3>> &in_vert, const std::vector<Vec<T, 3>> &in_normals,
          std::vector<Vec<T, 3>> &out_vert, std::vector<Vec<T, 3>> &out_normals,
-         const std::vector<DualQuat<T>> &_dualquat, const std::vector<std::vector<T>> &weights,
-         const std::vector<std::vector<int>> &joint_id, QuatAssumeType assumeUnit)
+         const std::vector<DualQuat<T>> &dualquat, const std::vector<std::vector<T>> &weights,
+         const std::vector<std::vector<int>> &joint_id)
 {
-    std::vector<DualQuat<T>> dualquat(_dualquat);
-    Quat<T> q0;
-    if (!assumeUnit)
-    {
-        for (auto &dq : dualquat)
-        {
-            dq = dq.normalize();
-        }
-    }
     for (size_t i = 0; i < in_vert.size(); ++i)
     {
         DualQuat<T> dq_blend;
@@ -486,10 +471,11 @@ void dqs(const std::vector<Vec<T, 3>> &in_vert, const std::vector<Vec<T, 3>> &in
         {
             k0 = joint_id[i][0];
             dq_blend = dualquat[k0] * weights[i][0];
-            q0 = dualquat[k0].getRotation();
         }
+        Quat<T> q0 = dualquat[k0].getRotation();
         for (int j = 1; j < joint_nu; ++j)
         {
+            // DualQuat<T> dq = dualquat[joint_id[i][j]];
             const T k = q0.dot(dualquat[i].getRotation()) < 0 ? -1.0 : 1.0;
             dq_blend = dq_blend + dualquat[joint_id[i][j]] * k * weights[i][j];
         }

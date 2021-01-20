@@ -66,7 +66,7 @@ template <typename _Tp> std::ostream& operator<<(std::ostream&, const Quat<_Tp>&
  *
  * If you want to create a dual quaternion, you can use:
  *
- * ```
+* ```
  * using namespace cv;
  * double angle = CV_PI;
  *
@@ -218,6 +218,32 @@ public:
      * a dual quaternion which translation is applied before rotation.
      */
     static DualQuat<_Tp> createFromMat(InputArray _R);
+
+    /**
+     * @brief A dual quaternion is a vector in form of
+     * \f[
+     * \begin{equation}
+     * \begin{split}
+     * \sigma &=\boldsymbol{p} + \epsilon \boldsymbol{q}\\
+     * &= \cos\hat{\frac{\theta}{2}}+\overline{\hat{l}}\sin\frac{\hat{\theta}}{2}
+     * \end{split}
+     * \end{equation}
+     * \f]
+     * where \f$\hat{\theta}\f$ is dual angle and \f$\overline{\hat{l}}\f$ is dual axis:
+     * \f[
+     * \hat{\theta}=\theta + \epsilon d,\\
+     * \overline{\hat{l}}= \hat{l} +\epsilon m.
+     * \f]
+     * In this representation, \f$\theta\f$ is rotation angle and \f$(\hat{l},m)\f$ is the screw axis, d is the translation distance along the axis.
+     * 
+     * @param angle rotation angle.
+     * @param d translation along the rotation axis.
+     * @param axis rotation axis represented by quaternion with w = 0.
+     * @param moment the moment of line.
+     * @note Translation is applied after the rotation. Use createFromQuat(r, r * t / 2) to create 
+     * a dual quaternion which translation is applied before rotation.
+     */
+    static DualQuat<_Tp> createFromPitch(const _Tp angle, const _Tp d, const Quat<_Tp> &axis, const Quat<_Tp> &moment);
     
     /**
      * @brief create dual quaternion from a affine matrix. see createFromMat()
@@ -468,11 +494,7 @@ public:
      */
     Matx<_Tp, 4, 4> toMat() const; //name may not proper
     
-    /**
-     * @brief Transform dual quaternion to a Affine3 transformation matrix.
-     */
-    Affine3<_Tp> toAffine3() const;
-    /**
+    /** 
      * @brief The screw linear interpolation(ScLERP) is an extension of spherical linear interpolation of quaternion.
      * If \f$\sigma_1\f$ and \f$\sigma_2\f$ are two dual quaternion representing the initial and final pose.
      * The interpolation of ScLERP function can be defined as:
@@ -487,12 +509,11 @@ public:
      * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion  assume to be a unit quaternion 
      * and this function will save some computations.
      *
-     *
      * For example
      * ```
      * double angle1 = CV_PI / 2;
      * Vec3d axis{0, 0, 1};
-     * Vec3d t(0, 0, 3);
+     * Quatd t(0, 0, 0, 3);
      * DualQuatd initial = DualQuatd::createFromAngleAxisTrans(angle1, axis, t);
      * double angle2 = CV_PI;
      * DualQuatd final = DualQuatd::createFromAngleAxisTrans(angle2, axis, t);
@@ -501,79 +522,25 @@ public:
      */
     static DualQuat<_Tp> sclerp(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, 
                                 bool directChange=true, QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
-    /**
-     * The method of Dual quaternion Linear Blending is to compute a transformation between dual quaternion 
-     * \f$q_1\f$ and \f$q_2\f$ and can be defined as:
-     * \f[
-     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,{\boldsymbol{q}}_2)=
-     * \frac{(1-t){\boldsymbol{q}}_1+t{\boldsymbol{q}}_2}{||(1-t){\boldsymbol{q}}_1+t{\boldsymbol{q}}_2||}.
-     * \f]
-     * where \f$q_1\f$ and \f$q_2\f$ are unit dual quaternions representing the input transformations. 
-     * If you want to use DLB that works for more than two rigid transformations, see gdlblend()
-     *
-     * @param q1 a unit dual quaternion representing the input transformations.
-     * @param q2 a unit dual quaternion representing the input transformations.
-     * @param t  parameter $t\in[0,1]$.
-     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
-     * and this function will save some computations.
-     *
-     * @sa gdlblend
-     *
-     */
-    static DualQuat<_Tp> dlblend(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, 
-                                 QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
+    
+    static DualQuat<_Tp> dqblend(const DualQuat<_Tp> &q1, const DualQuat<_Tp> &q2, const _Tp t, QuatAssumeType assumeUnit);
+    
+    template <int cn>
+    static DualQuat<_Tp> gdqblend(const Vec<DualQuat<_Tp>, cn> &dualquat, const Vec<_Tp, cn> &weight);
 
     /**
-     * The generalized Dual quaternion Linear Blending works for more than two rigid transformations. 
-     * If these transformations are expressed as unit dual quaternions $q_1,...,q_n$ with convex weights 
-     * $w = (w_1,...,w_n)$, the generalized DLB is simply
-     * \f[
-     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,...,{\boldsymbol{q}}_n)=\frac{w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n}
-     * {||w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n||}.
-     * \f]
-     * @param vector of dual quaternions
-     * @param vector of weights. \f$\sum_0^n w_{i} = 1\f$ and \f$w_i>0\f$
-     * @param assumeUnit if QUAT_ASSUME_UNIT, this quaternion assume to be a unit quaternion 
-     * and this function will save some computations.
-     *
+     * @brief
+     * @param in_vert 
+     * @param in_normals
      */
     template <int cn>
-    static DualQuat<_Tp> gdlblend(const Vec<DualQuat<_Tp>, cn> &dualquat, const Vec<_Tp, cn> &weight, 
-                                  QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
-
-    /**
-     * This function is a skinning algorithm to deform the mesh with dual quaternion skinning(DQS) deformer with reference 
-     * to the paper "Geometric Skinning with Approximate Dual Quaternion Blending". We use the generalized Dual quaternion
-     * Linear Blending to compute the deformed position:
-     * \f[
-     * DLB(\boldsymbol{w};{\boldsymbol{q}}_1,...,{\boldsymbol{q}}_n)=
-     * \frac{w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n}{||w_1{\boldsymbol{q}}_1+...+w_n{\boldsymbol{q}}_n||}.
-     * \f]
-     * And it will alwmesays choose the shortest rotation path. Compared with  Linear Blending Skinning(LBS), 
-     * the DQS can avoid the loss of volume and have a relatively better performance on rudualn-time. 
-     *
-     * @param in_vert vector of vertices at original position
-     * @param in_normals vector of mesh normals 
-     * @param out_vert deformed vertices transformed by dual quaternions
-     * @param out_normals deformed mesh normals transformed by dual quaternions
-     * @param dualquat vector of unit dual quaternions for each joint 
-     * @param weights vector of influence weights for each vertex. All weights that influence one vertex should 
-     * satisfy \f$\sum_0^n w_{i} = 1\f$ and \f$w_i>0\f$
-     * @param joints_id vector of joints id that influence one vertex for each vertex. (same order as weights). 
-     * The ID here represents the order of dual quaternion, So the joints id should be non-negative.
-     * 
-     * @sa gdlblend
-     *
-     */
-    static void dqs(const std::vector<Vec<_Tp, 3>> &in_vert, 
-                    const std::vector<Vec<_Tp, 3>> &in_normals,
-                    std::vector<Vec<_Tp, 3>> &out_vert, 
-                    std::vector<Vec<_Tp, 3>> &out_normals,
-                    const std::vector<DualQuat<_Tp>> &dualquat, 
-                    const std::vector<std::vector<_Tp>> &weight,
-                    const std::vector<std::vector<int>> &joint_id,
-                    QuatAssumeType assumeUnit=QUAT_ASSUME_NOT_UNIT);
-
+    static void dqs(const Vec<Vec<_Tp, 3>, cn> &in_vert, 
+                    const Vec<Vec<_Tp, 3>, cn> &in_normals,
+                    Vec<Vec<_Tp, 3>, cn> &out_vert, 
+                    Vec<Vec<_Tp, 3>, cn> &out_normals,
+                    const Vec<DualQuat<_Tp>, cn> &dualquat, 
+                    const std::vector<std::vector<_Tp>>  &weight,
+                    const std::vector<std::vector<int>> &joint_id);
     /**
      * @brief Return opposite dual quaternion \f$-p\f$
      * which satisfies \f$p + (-p) = 0.\f$
@@ -771,6 +738,7 @@ public:
     
 
     Matx<_Tp, 4, 4> Jacobian(const Quat<_Tp> &q) const;
+    
     /**
      * @brief Division assignment operator of two dual quaternions p and q;
      * It divides left operand with the right operand and assign the result to left operand.
@@ -875,7 +843,7 @@ public:
     friend DualQuat<T> cv::operator*(const T a, const DualQuat<T>&);
     
     /**
-     * @brief Subtraction operator of a dual quaternion and a scalar.
+* @brief Subtraction operator of a dual quaternion and a scalar.
      * Subtracts right hand operand from left hand operand.
      *
      * For example
@@ -933,16 +901,6 @@ public:
     template <typename S>
     friend std::ostream& cv::operator<<(std::ostream&, const DualQuat<S>&);
 
-    /*
-    DualQuat<_Tp> tlog() {
-        Quat<_Tp> q(getRealQuat().log());
-        Matx<_Tp, 4, 4> j = Jacobian(q);
-        Quat<_Tp> dual = Quat<_Tp>(j.inv() * getDualQuat().toVec());
-        std::cout << "dual: " << dual << std::endl;
-        Quat<_Tp> dual1 = Quat<_Tp>(j.solve(getDualQuat().toVec() ,DECOMP_SVD));
-        std::cout << "dual_solve: " << dual1 << std::endl;
-        return createFromQuat(q, dual);
-    }*/
 Matx<_Tp, 4, 4> Jacob(const Quat<_Tp> &q) const
 {
     _Tp vvT = q.x * q.x + q.y * q.y + q.z * q.z;
@@ -960,23 +918,6 @@ Matx<_Tp, 4, 4> Jacob(const Quat<_Tp> &q) const
     return std::exp(q.w) * J_exp_quat;
 }
 
-    DualQuat<_Tp> tlog() {
-        Quat<_Tp> q = getRealQuat().log();
-        Matx<_Tp, 4, 4> j = Jacob(q);
-        Matx<_Tp, 4, 3> jq = jExpRogArg(Vec<_Tp, 3>(q[1], q[2], q[3]));
-        
-        Vec<_Tp, 4> t = getDualQuat().toVec();
-        Vec<_Tp, 3> dvec{t[1], t[2], t[3]};
-        
-        Vec3f ldvec = jq.solve(t, DECOMP_SVD);
-        Vec4f ldvec_m = j.solve(t, DECOMP_SVD);
-        
-        Quat<_Tp> ldvec_my(ldvec_m);
-        std::cout << "ldvec_m" << ldvec_my << std::endl;
-        Quat<_Tp> ld(0, ldvec[0], ldvec[1], ldvec[2]);
-        std::cout << "ld" << ld << std::endl;
-        return createFromQuat(q, ldvec_my);
-    }
 };
 
 inline float sinc(float x)

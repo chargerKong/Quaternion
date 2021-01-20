@@ -47,8 +47,6 @@ TEST_F(DualQuatTest, constructor){
     double d = trans.dot(qaxis);
     DualQuatd dq4 = DualQuatd::createFromPitch(rotation_angle, d, qaxis, moment);
     EXPECT_EQ(dq4, dq3);
-    
-
 }
 
 TEST_F(DualQuatTest, operator){
@@ -118,7 +116,6 @@ TEST_F(DualQuatTest, basic_ops){
     EXPECT_EQ(dq1.tlog().exp(), dq1);
 }
 
-
 TEST_F(DualQuatTest, dqs) {
     DualQuatd dq = DualQuatd::createFromAngleAxisTrans(8*CV_PI/5, Vec3d{0,0,1}, Quatd{0,0,0,10});
     EXPECT_EQ(DualQuatd::sclerp(dqIdentity, dq, 0.5), DualQuatd::sclerp(-dqIdentity, dq, 0.5, false));
@@ -173,6 +170,31 @@ TEST_F(DualQuatTest, dqs) {
 /*     //p = p.t(); */
 /*     //dot(trans, trans); */
 /* } */
+
+/* TEST_F(DualQuatTest, abc){ */
+/*     double angle1 = CV_PI / 2; */
+/*     Vec3d axis{0, 0, 1}; */
+/*      t(0, 0, 0, 3); */
+/*     DualQuatd initial = DualQuatd::createFromAngleAxisTrans(angle1, axis, t); */
+/*     double angle2 = CV_PI; */
+/*     DualQuatd final = DualQuatd::createFromAngleAxisTrans(angle2, axis, t); */
+/*     DualQuatd inter = DualQuatd::sclerp(initial, final, 0.5); */
+   
+/*     DualQuatd c1{1,2,3,4,5,6,7,8}; */
+/*     DualQuatd c2{5,6,7,8,9,10,11,12}; */
+/*     std::cout << c1 * c2 << std::endl; */
+
+/*     DualQuatd dq22 = dqIdentity * 2.0; */
+/*     std::cout << dq22 * dq22.inv()<< std::endl; */
+/*     std::cout << dq22 * DualQuatd::createFromQuat(dq22.getRealQuat().inv(), -dq22.getRealQuat().inv() * dq22.getDualQuat() * dq22.getRealQuat().inv()) << std::endl; */
+/*     std::cout << dq1.norm() * DualQuatd::createFromQuat(dq1.getRotation(), dq1.getTranslation() * dq1.getRotation() / 2) << std::endl; */
+    
+
+/*     //Mat p = (Mat_ <double>(2, 3) << 1,0,0,1,0,1); */
+/*     //p = p.t(); */
+/*     //dot(trans, trans); */
+/* } */
+
 
 } // namespace
 
